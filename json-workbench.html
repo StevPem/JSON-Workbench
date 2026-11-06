@@ -1,0 +1,2419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Workbench</title>
+<style>
+:root{
+  --bg:#f6f6f3; --panel:#ffffff; --panel2:#f0efeb; --border:#e1dfd8; --text:#1d1d1b; --muted:#76746c;
+  --accent:#2f6fde; --accent-weak:#e5edfc; --hover:#f3f2ee; --sel:#dfe9fc; --match:#fff2bf; --cur:#ffd75e;
+  --danger:#c8372d; --ok:#2b8a4a; --warn:#b26a00;
+  --t-key:#7b3b9e; --t-str:#25793a; --t-num:#1d5fc0; --t-bool:#b45309; --t-null:#8a877f; --t-punc:#9a978f;
+  --shadow:0 10px 32px rgba(20,20,10,.16); --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16171a; --panel:#1d1f23; --panel2:#24262b; --border:#33363c; --text:#e7e6e1; --muted:#9a988f;
+    --accent:#6f9cf5; --accent-weak:#25324d; --hover:#25272c; --sel:#2a3a5c; --match:#4a4120; --cur:#7a6417;
+    --danger:#f0776d; --ok:#5cc47f; --warn:#e6a23c;
+    --t-key:#d29bf2; --t-str:#8fd59b; --t-num:#7fb2ff; --t-bool:#f2a65a; --t-null:#9a988f; --t-punc:#7c7a73;
+    --shadow:0 10px 32px rgba(0,0,0,.5); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16171a; --panel:#1d1f23; --panel2:#24262b; --border:#33363c; --text:#e7e6e1; --muted:#9a988f;
+  --accent:#6f9cf5; --accent-weak:#25324d; --hover:#25272c; --sel:#2a3a5c; --match:#4a4120; --cur:#7a6417;
+  --danger:#f0776d; --ok:#5cc47f; --warn:#e6a23c;
+  --t-key:#d29bf2; --t-str:#8fd59b; --t-num:#7fb2ff; --t-bool:#f2a65a; --t-null:#9a988f; --t-punc:#7c7a73;
+  --shadow:0 10px 32px rgba(0,0,0,.5); color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+kbd{font-family:var(--mono);font-size:11px;padding:1px 5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;background:var(--panel2);color:var(--muted)}
+code{font-family:var(--mono);font-size:12.5px}
+
+/* ---------- toolbar ---------- */
+.tb{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-weight:650;letter-spacing:-.01em;white-space:nowrap}
+.logo{font-family:var(--mono);font-weight:700;color:#fff;background:var(--accent);border-radius:6px;padding:1px 6px;font-size:13px}
+.fname{display:flex;align-items:center;gap:6px;border:1px solid transparent;background:none;border-radius:6px;padding:4px 8px;max-width:220px;color:var(--muted)}
+.fname:hover{border-color:var(--border);color:var(--text)}
+.fname span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--warn);flex:none}
+.grp{display:flex;gap:2px}
+.ib{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;min-width:32px;padding:0 8px;border:1px solid transparent;border-radius:6px;background:none;color:var(--text)}
+.ib:hover:not(:disabled){background:var(--hover);border-color:var(--border)}
+.ib:disabled{opacity:.35;cursor:default}
+.ib.on{background:var(--accent-weak);color:var(--accent)}
+.btn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--border);border-radius:6px;background:var(--panel);white-space:nowrap}
+.btn:hover:not(:disabled){background:var(--hover)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.07);background:var(--accent)}
+.btn.danger{color:var(--danger)}
+.btn.sm{height:26px;padding:0 9px;font-size:12.5px}
+.seg{display:flex;background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:2px}
+.seg button{border:0;background:none;padding:4px 12px;border-radius:5px;color:var(--muted);font-weight:550}
+.seg button.on{background:var(--panel);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.spacer{flex:1}
+.search{display:flex;align-items:center;gap:2px;border:1px solid var(--border);border-radius:7px;background:var(--bg);padding:0 4px 0 8px;height:32px;min-width:0}
+.search:focus-within{border-color:var(--accent)}
+.search input{border:0;outline:0;background:none;width:190px;min-width:60px;padding:0 4px}
+.search .cnt{font-size:12px;color:var(--muted);white-space:nowrap;min-width:34px;text-align:right}
+.search .ib{height:24px;min-width:24px;padding:0 4px}
+.search .opt{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.search .opt.on{color:var(--accent);background:var(--accent-weak)}
+.search.bad{border-color:var(--danger)}
+
+/* ---------- layout ---------- */
+main{flex:1;display:flex;min-height:0}
+#viewWrap{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;position:relative;background:var(--panel)}
+.view{flex:1;min-height:0;display:flex;flex-direction:column}
+[hidden]{display:none!important}
+#side{width:360px;flex:none;border-left:1px solid var(--border);background:var(--bg);display:flex;flex-direction:column;min-height:0}
+.tabs{display:flex;gap:2px;padding:8px 10px 0;border-bottom:1px solid var(--border)}
+.tabs button{border:0;background:none;padding:6px 12px;border-bottom:2px solid transparent;color:var(--muted);font-weight:550;margin-bottom:-1px}
+.tabs button.on{color:var(--text);border-bottom-color:var(--accent)}
+.tabpane{flex:1;overflow:auto;padding:12px;min-height:0}
+
+/* ---------- tree ---------- */
+#treeScroll{flex:1;overflow:auto;position:relative;outline:none}
+#treeSpacer{position:relative;min-height:100%}
+.row{position:absolute;left:0;right:0;height:26px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--mono);font-size:13px;padding-right:6px;user-select:none;-webkit-user-select:none}
+.row:hover{background:var(--hover)}
+.row.match{background:var(--match)}
+.row.cur{background:var(--cur)}
+.row.sel{background:var(--sel);box-shadow:inset 3px 0 0 var(--accent)}
+#treeScroll:not(:focus-within) .row.sel{box-shadow:inset 3px 0 0 var(--muted)}
+.tog{width:16px;height:16px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:var(--muted);border-radius:3px;transition:transform .1s}
+.tog:not(.none):hover{background:var(--panel2);color:var(--text)}
+.tog.open{transform:rotate(90deg)}
+.k{color:var(--t-key);flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;max-width:45%}
+.k.idx,.k.root{color:var(--muted)}
+.k.empty{color:var(--muted);font-style:italic}
+.colon{color:var(--t-punc);margin-left:-4px}
+.v{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.t-string{color:var(--t-str)} .t-number{color:var(--t-num)} .t-boolean{color:var(--t-bool)} .t-null{color:var(--t-null);font-style:italic}
+.badge{font-family:system-ui,sans-serif;font-size:11px;color:var(--muted);background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:0 7px;line-height:17px;flex:none}
+.pv{color:var(--muted);overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sw{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(128,128,128,.5);vertical-align:-1px;margin-right:5px}
+.acts{margin-left:auto;display:none;gap:1px;flex:none;padding-left:8px}
+.row:hover .acts,.row.sel .acts{display:flex}
+.acts button{border:0;background:none;width:24px;height:22px;border-radius:4px;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;padding:0}
+.acts button:hover{background:var(--panel2);color:var(--text)}
+.acts button.del:hover{color:var(--danger)}
+.inl{font:inherit;border:1px solid var(--accent);border-radius:4px;padding:1px 5px;min-width:140px;flex:1 1 auto;background:var(--panel);color:var(--text);outline:none;height:22px;max-width:100%}
+.inl.key{flex:0 1 220px;min-width:90px}
+
+/* ---------- empty ---------- */
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--panel);z-index:2}
+.card{max-width:480px;width:100%;text-align:center}
+.card h1{font-size:22px;margin:12px 0 6px;letter-spacing:-.02em}
+.card p{color:var(--muted);margin:0 0 20px}
+.card .big{font-family:var(--mono);font-size:42px;color:var(--accent);font-weight:700}
+.card .acts2{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.card .hint{margin-top:22px;font-size:12.5px;color:var(--muted)}
+
+/* ---------- text editor ---------- */
+.vbar{display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;background:var(--panel)}
+.terr{font-size:12.5px;display:flex;align-items:center;gap:8px;min-width:0}
+.terr.bad{color:var(--danger)} .terr.good{color:var(--ok)}
+.terr a{color:inherit;text-decoration:underline;cursor:pointer}
+.editor{flex:1;display:flex;min-height:0;font-family:var(--mono);font-size:13px;line-height:20px;position:relative}
+.gutter{flex:none;overflow:hidden;background:var(--panel2);border-right:1px solid var(--border);color:var(--muted);text-align:right;user-select:none;position:relative}
+.gutter pre{margin:0;padding:8px 8px 8px 12px;font:inherit;min-width:44px}
+.codewrap{flex:1;position:relative;overflow:hidden;min-width:0}
+#layer{position:absolute;top:0;left:0;will-change:transform;pointer-events:none}
+#hl{margin:0;padding:8px 12px;font:inherit;white-space:pre;tab-size:4;color:var(--text)}
+#errBand{position:absolute;left:0;width:100000px;height:20px;background:color-mix(in srgb,var(--danger) 16%,transparent);display:none}
+#ta{position:absolute;inset:0;width:100%;height:100%;margin:0;border:0;outline:0;resize:none;padding:8px 12px;font:inherit;line-height:20px;white-space:pre;overflow:auto;tab-size:4;background:transparent;color:transparent;caret-color:var(--text)}
+#ta.plain{color:var(--text)}
+#ta::selection{background:color-mix(in srgb,var(--accent) 35%,transparent);color:transparent}
+#ta.plain::selection{color:var(--text)}
+#ta::placeholder{color:var(--muted)}
+.h-k{color:var(--t-key)} .h-s{color:var(--t-str)} .h-n{color:var(--t-num)} .h-b{color:var(--t-bool)} .h-z{color:var(--t-null)} .h-p{color:var(--t-punc)} .h-c{color:var(--muted);font-style:italic}
+
+/* ---------- table ---------- */
+.tbar{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;font-size:13px}
+.crumbs{display:flex;align-items:center;gap:2px;flex-wrap:wrap;font-family:var(--mono);font-size:12.5px}
+.crumbs button{border:0;background:none;padding:2px 5px;border-radius:4px;color:var(--accent)}
+.crumbs button:hover{background:var(--accent-weak)}
+.crumbs .last{color:var(--text);padding:2px 5px}
+.crumbs .sep{color:var(--muted)}
+.tscroll{flex:1;overflow:auto;min-height:0}
+table.grid{border-collapse:separate;border-spacing:0;font-family:var(--mono);font-size:12.5px;min-width:100%}
+.grid th,.grid td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:4px 10px;text-align:left;white-space:nowrap;max-width:340px;overflow:hidden;text-overflow:ellipsis;height:28px}
+.grid th{position:sticky;top:0;background:var(--panel2);font-family:system-ui,sans-serif;font-weight:600;font-size:12.5px;cursor:pointer;z-index:1;user-select:none}
+.grid th:hover{color:var(--accent)}
+.grid th .ar{color:var(--accent);margin-left:4px}
+.grid td.rk{background:var(--panel2);color:var(--muted);position:sticky;left:0;cursor:pointer}
+.grid th.rk{left:0;z-index:2}
+.grid tr:hover td{background:var(--hover)}
+.grid tr:hover td.rk{background:var(--panel2)}
+.grid td.sel{outline:2px solid var(--accent);outline-offset:-2px}
+.grid td.hit{background:var(--match)!important}
+.grid td.cont{cursor:pointer}
+.grid td.cont:hover .badge{border-color:var(--accent);color:var(--accent)}
+.grid .miss{color:var(--border)}
+.grid td input{font:inherit;width:100%;min-width:120px;border:1px solid var(--accent);border-radius:3px;padding:1px 4px;background:var(--panel);color:var(--text);outline:none}
+.tmore{padding:10px;text-align:center}
+.notice{padding:32px 16px;text-align:center;color:var(--muted)}
+
+/* ---------- inspector / query ---------- */
+.sec{margin-bottom:14px}
+.lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.pathbox{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:4px 4px 4px 8px}
+.pathbox code{flex:1;overflow:auto;white-space:nowrap;scrollbar-width:none}
+.meta{display:flex;gap:6px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.meta b{color:var(--text);font-weight:600}
+.btnrow{display:flex;gap:6px;flex-wrap:wrap}
+.insed{width:100%;min-height:220px;height:38vh;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:8px;background:var(--panel);font-family:var(--mono);font-size:12.5px;line-height:1.5;tab-size:2;outline:none;white-space:pre;overflow:auto}
+.insed:focus{border-color:var(--accent)}
+.insed.wrap{white-space:pre-wrap;word-break:break-word}
+.msg{font-size:12.5px;margin:6px 0;min-height:18px}
+.msg.bad{color:var(--danger)} .msg.good{color:var(--ok)}
+select.sel{height:26px;border:1px solid var(--border);border-radius:6px;background:var(--panel);padding:0 6px;font-size:12.5px}
+.qbar{display:flex;gap:6px}
+.qbar input{flex:1;min-width:0;height:32px;border:1px solid var(--border);border-radius:6px;padding:0 8px;background:var(--panel);font-family:var(--mono);font-size:12.5px;outline:none}
+.qbar input:focus{border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.chip{border:1px solid var(--border);background:var(--panel);border-radius:12px;padding:2px 9px;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.chip:hover{color:var(--accent);border-color:var(--accent)}
+.qres{display:flex;flex-direction:column;gap:2px;margin-top:8px}
+.qitem{display:block;width:100%;text-align:left;border:1px solid transparent;background:var(--panel);border-radius:6px;padding:5px 8px;font-family:var(--mono);font-size:12px;overflow:hidden}
+.qitem:hover{border-color:var(--accent)}
+.qitem .qp{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qitem .qv{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.help{font-size:12.5px;color:var(--muted);line-height:1.6}
+.help code{background:var(--panel2);padding:0 4px;border-radius:3px}
+
+/* ---------- status ---------- */
+.st{display:flex;align-items:center;gap:14px;padding:4px 12px;border-top:1px solid var(--border);background:var(--panel);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.st .ok{color:var(--ok)} .st .bad{color:var(--danger);cursor:pointer}
+#stPath{font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;cursor:pointer;min-width:0}
+#stPath:hover{color:var(--text)}
+.st label{display:flex;align-items:center;gap:6px}
+.st select{height:22px;font-size:12px;border:1px solid var(--border);border-radius:5px;background:var(--panel)}
+
+/* ---------- menu / modal / toast ---------- */
+.menu{position:fixed;z-index:75;min-width:220px;max-width:320px;background:var(--panel);border:1px solid var(--border);border-radius:9px;box-shadow:var(--shadow);padding:5px;max-height:80vh;overflow:auto}
+.mi{display:flex;width:100%;align-items:center;justify-content:space-between;gap:16px;border:0;background:none;padding:6px 10px;border-radius:5px;text-align:left;font-size:13px}
+.mi:hover:not(:disabled),.mi:focus-visible{background:var(--accent-weak);outline:none}
+.mi:disabled{opacity:.4;cursor:default}
+.mi.danger{color:var(--danger)}
+.msep{height:1px;background:var(--border);margin:4px 6px}
+.mhead{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 10px 3px;font-weight:600}
+.mchips{display:flex;flex-wrap:wrap;gap:4px;padding:3px 8px 6px}
+.mchips button{border:1px solid var(--border);background:var(--panel);border-radius:5px;padding:2px 8px;font-size:12px}
+.mchips button:hover{border-color:var(--accent);color:var(--accent)}
+.mchips button.cur{background:var(--accent-weak);color:var(--accent);border-color:var(--accent)}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:60;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);width:440px;max-width:100%;max-height:90vh;display:flex;flex-direction:column}
+.modal.wide{width:720px}
+.mh{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px 18px}
+.mh h2{font-size:16px;margin:0}
+.mb{padding:4px 18px 8px;overflow:auto}
+.mb p{margin:0 0 10px;color:var(--muted)}
+.mb input.fi{width:100%;height:34px;border:1px solid var(--border);border-radius:6px;padding:0 10px;background:var(--bg);outline:none;font-family:var(--mono);font-size:13px}
+.mb input.fi:focus{border-color:var(--accent)}
+.mb textarea{width:100%;height:50vh;border:1px solid var(--border);border-radius:6px;padding:8px;background:var(--bg);font-family:var(--mono);font-size:12.5px;resize:vertical;white-space:pre;outline:none}
+.mf{display:flex;justify-content:flex-end;gap:8px;padding:10px 18px 16px}
+.keys{width:100%;border-collapse:collapse;font-size:13px}
+.keys td{padding:5px 4px;border-bottom:1px solid var(--border)}
+.keys td:first-child{white-space:nowrap;width:1%;padding-right:16px}
+.keys h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:14px 0 4px}
+#toasts{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;z-index:70;align-items:center;pointer-events:none;width:max-content;max-width:calc(100vw - 32px)}
+.toast{background:var(--text);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:13px;box-shadow:var(--shadow);animation:tin .15s ease-out}
+.toast.err{background:var(--danger);color:#fff}
+@keyframes tin{from{opacity:0;transform:translateY(6px)}}
+#dropOv{position:fixed;inset:0;z-index:80;background:color-mix(in srgb,var(--accent) 18%,transparent);border:3px dashed var(--accent);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:600;color:var(--accent);pointer-events:none}
+
+@media (max-width: 860px){
+  main{flex-direction:column}
+  #side{width:auto;height:42vh;border-left:0;border-top:1px solid var(--border)}
+  .bname{display:none}
+  .search{flex:1 1 200px}
+  .search input{width:100%}
+  .spacer{display:none}
+}
+@media (max-width: 520px){
+  .tb{padding:6px 8px;gap:4px}
+  .fname{max-width:120px}
+  .st .hide-sm{display:none}
+}
+</style>
+</head>
+<body>
+<header class="tb">
+  <div class="brand"><span class="logo">{ }</span><span class="bname">JSON Workbench</span></div>
+  <button class="fname" id="fname" title="Rename file"><span id="fnameText">untitled.json</span><span id="dirtyDot" class="dot" title="Unsaved changes" hidden></span></button>
+  <div class="grp">
+    <button class="ib" id="bNew" data-icon="file" title="New…"></button>
+    <button class="ib" id="bOpen" data-icon="open" title="Open file (Ctrl+O)"></button>
+    <button class="ib" id="bSave" data-icon="save" title="Save (Ctrl+S) · right-click for Save as"></button>
+  </div>
+  <div class="grp">
+    <button class="ib" id="bUndo" data-icon="undo" title="Undo (Ctrl+Z)"></button>
+    <button class="ib" id="bRedo" data-icon="redo" title="Redo (Ctrl+Y)"></button>
+  </div>
+  <div class="seg" role="tablist" id="viewSeg">
+    <button data-view="tree" title="Tree view (Ctrl+1)">Tree</button>
+    <button data-view="text" title="Text view (Ctrl+2)">Text</button>
+    <button data-view="table" title="Table view (Ctrl+3)">Table</button>
+  </div>
+  <button class="btn" id="bTools" data-icon="tool">Tools</button>
+  <div class="spacer"></div>
+  <div class="search" id="searchBox">
+    <span data-icon="search" style="color:var(--muted);display:flex"></span>
+    <input id="sIn" placeholder="Search keys & values" autocomplete="off" spellcheck="false" aria-label="Search">
+    <span class="cnt" id="sCount"></span>
+    <button class="ib" id="sPrev" data-icon="up" title="Previous (Shift+Enter)"></button>
+    <button class="ib" id="sNext" data-icon="down" title="Next (Enter)"></button>
+    <button class="ib opt" id="sCase" title="Match case">Aa</button>
+    <button class="ib opt" id="sRe" title="Regular expression">.*</button>
+  </div>
+  <div class="grp">
+    <button class="ib" id="bPanel" data-icon="panel" title="Toggle side panel (Ctrl+B)"></button>
+    <button class="ib" id="bTheme" data-icon="theme" title="Toggle theme"></button>
+    <button class="ib" id="bHelp" data-icon="help" title="Keyboard shortcuts (?)"></button>
+  </div>
+</header>
+
+<main>
+  <section id="viewWrap">
+    <div id="empty" class="empty" hidden>
+      <div class="card">
+        <div class="big">{ }</div>
+        <h1>Open a JSON file</h1>
+        <p>Drop a file anywhere, paste JSON with Ctrl+V, or start from scratch.</p>
+        <div class="acts2">
+          <button class="btn primary" data-do="open" data-icon="open">Open file</button>
+          <button class="btn" data-do="paste">Paste / type JSON</button>
+          <button class="btn" data-do="sample">Load sample</button>
+        </div>
+        <div class="acts2" style="margin-top:8px">
+          <button class="btn sm" data-do="newObj">New object {}</button>
+          <button class="btn sm" data-do="newArr">New array []</button>
+          <button class="btn sm" data-do="url">Load from URL…</button>
+        </div>
+        <div class="hint">Supports .json, .geojson and JSON Lines. Files with comments or trailing commas can be repaired automatically. Everything stays in your browser.</div>
+      </div>
+    </div>
+
+    <div id="treeView" class="view">
+      <div id="treeScroll" tabindex="0" aria-label="JSON tree"><div id="treeSpacer"></div></div>
+    </div>
+
+    <div id="textView" class="view" hidden>
+      <div class="vbar">
+        <button class="btn sm" id="tFormat">Format</button>
+        <button class="btn sm" id="tMinify">Minify</button>
+        <button class="btn sm" id="tRepair" hidden>Repair JSON</button>
+        <button class="btn sm" id="tCopy" data-icon="copy">Copy</button>
+        <div class="terr" id="tErr"></div>
+      </div>
+      <div class="editor">
+        <div class="gutter"><pre id="gutPre">1</pre></div>
+        <div class="codewrap">
+          <div id="layer"><div id="errBand"></div><pre id="hl"></pre></div>
+          <textarea id="ta" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" placeholder="Paste or type JSON here…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div id="tableView" class="view" hidden></div>
+  </section>
+
+  <aside id="side">
+    <div class="tabs">
+      <button data-tab="ins" class="on">Inspector</button>
+      <button data-tab="query">Query</button>
+    </div>
+    <div id="tabIns" class="tabpane"></div>
+    <div id="tabQuery" class="tabpane" hidden>
+      <div class="lbl">JSONPath query</div>
+      <div class="qbar">
+        <input id="qIn" placeholder="$..[?(@.price < 10)].name" spellcheck="false" autocomplete="off">
+        <button class="btn primary" id="qRun">Run</button>
+      </div>
+      <div class="chips" id="qEx"></div>
+      <div class="msg" id="qMsg"></div>
+      <div class="btnrow" id="qActs" hidden>
+        <button class="btn sm" id="qCopy" data-icon="copy">Copy results</button>
+        <button class="btn sm" id="qSet">Set all…</button>
+        <button class="btn sm danger" id="qDel" data-icon="trash">Delete all</button>
+      </div>
+      <div class="qres" id="qRes"></div>
+      <div class="help" style="margin-top:16px">
+        <b>Syntax:</b> <code>$</code> root · <code>.key</code> / <code>['key']</code> child · <code>[0]</code> <code>[-1]</code> index · <code>[1:3]</code> slice · <code>*</code> wildcard · <code>..</code> recursive · <code>[a,b]</code> union · <code>[?(@.x &gt; 1 &amp;&amp; @.y == 'z')]</code> filter (<code>== != &lt; &lt;= &gt; &gt;= =~ /re/i</code>, <code>@.arr.length</code>, existence <code>@.x</code>, <code>!@.x</code>).
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer class="st">
+  <span id="stValid"></span>
+  <span id="stInfo" class="hide-sm"></span>
+  <span id="stPath" title="Click to copy path"></span>
+  <span class="spacer" style="display:block"></span>
+  <label class="hide-sm">Indent
+    <select id="indentSel">
+      <option value="2">2 spaces</option>
+      <option value="4">4 spaces</option>
+      <option value="tab">Tab</option>
+      <option value="0">Minified</option>
+    </select>
+  </label>
+</footer>
+
+<input type="file" id="fileIn" accept=".json,.jsonl,.ndjson,.geojson,.json5,.txt,application/json" hidden>
+<div id="dropOv" hidden>Drop to open</div>
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* =========================================================================
+   Utilities
+   ========================================================================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const isCont = v => v !== null && typeof v === 'object';
+const typeOf = v => v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v;
+const pk = p => JSON.stringify(p);
+const entriesOf = v => Array.isArray(v) ? v.map((x, i) => [i, x]) : Object.keys(v).map(k => [k, v[k]]);
+const clone = v => v === undefined ? undefined : JSON.parse(JSON.stringify(v));
+const plural = (n, w) => `${n.toLocaleString()} ${w}${n === 1 ? '' : /(ch|sh|s|x)$/.test(w) ? 'es' : 's'}`;
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); return true; } catch { return false; } },
+  del(k) { try { localStorage.removeItem(k); } catch {} }
+};
+function setProp(o, k, v) {
+  if (Array.isArray(o)) { o[k] = v; return; }
+  if (k === '__proto__') Object.defineProperty(o, k, { value: v, enumerable: true, writable: true, configurable: true });
+  else o[k] = v;
+}
+function reorderObj(o, ents) { for (const k of Object.keys(o)) delete o[k]; for (const [k, v] of ents) setProp(o, k, v); }
+function uniqueKey(o, base) { if (!hasOwn(o, base)) return base; let i = 2; while (hasOwn(o, base + i)) i++; return base + i; }
+function fmtBytes(n) { return n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(2) + ' MB'; }
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+function prefixMatch(p, pre) { if (p.length < pre.length) return false; for (let i = 0; i < pre.length; i++) if (p[i] !== pre[i]) return false; return true; }
+function pathStr(path) {
+  let s = '$';
+  for (const seg of path) {
+    if (typeof seg === 'number') s += `[${seg}]`;
+    else if (/^[A-Za-z_$][\w$]*$/.test(seg)) s += '.' + seg;
+    else s += `['${seg.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}']`;
+  }
+  return s;
+}
+
+const svg = d => `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  file: svg('<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M12 12v6M9 15h6"/>'),
+  open: svg('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
+  save: svg('<path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8"/><path d="M7 21v-7h10v7"/>'),
+  undo: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>'),
+  redo: svg('<path d="m15 14 5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h3"/>'),
+  plus: svg('<path d="M12 5v14M5 12h14"/>'),
+  trash: svg('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>'),
+  copy: svg('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>'),
+  dup: svg('<rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16V5a1 1 0 0 1 1-1h11"/><path d="M14.5 11.5v6M11.5 14.5h6"/>'),
+  up: svg('<path d="m18 15-6-6-6 6"/>'),
+  down: svg('<path d="m6 9 6 6 6-6"/>'),
+  more: svg('<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>'),
+  tool: svg('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>'),
+  search: svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
+  panel: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/>'),
+  theme: svg('<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16z" fill="currentColor"/>'),
+  help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/><path d="M12 17h.01"/>'),
+  x: svg('<path d="M18 6 6 18M6 6l12 12"/>'),
+  chev: '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+
+/* =========================================================================
+   Parser with precise error locations and a lenient (repair) mode
+   ========================================================================= */
+class ParseError extends Error { constructor(msg, pos) { super(msg); this.pos = pos; } }
+function parseJSON(text, lenient = false) {
+  let i = 0; const n = text.length;
+  const fail = m => { throw new ParseError(m, i); };
+  const eoi = () => i >= n;
+  function ws() {
+    for (;;) {
+      const c = text.charCodeAt(i);
+      if (c === 32 || c === 9 || c === 10 || c === 13) { i++; continue; }
+      if (c === 0xFEFF && i === 0) { i++; continue; }
+      if (lenient) {
+        if (c === 0xA0) { i++; continue; }
+        if (c === 47 && text[i + 1] === '/') { while (i < n && text[i] !== '\n') i++; continue; }
+        if (c === 47 && text[i + 1] === '*') { const e = text.indexOf('*/', i + 2); if (e < 0) fail('Unterminated comment'); i = e + 2; continue; }
+        if (c === 35) { while (i < n && text[i] !== '\n') i++; continue; }
+      }
+      break;
+    }
+  }
+  function value() {
+    ws();
+    if (eoi()) fail('Unexpected end of input — a value was expected');
+    const c = text[i];
+    if (c === '{') return obj();
+    if (c === '[') return arr();
+    if (c === '"' || (lenient && c === "'")) return str();
+    if (c === '-' || (c >= '0' && c <= '9') || (lenient && (c === '+' || c === '.'))) return num();
+    for (const [w, v] of [['true', true], ['false', false], ['null', null]]) if (text.startsWith(w, i)) { i += w.length; return v; }
+    if (lenient) {
+      for (const [w, v] of [['True', true], ['False', false], ['None', null], ['undefined', null], ['NaN', null], ['Infinity', null]]) if (text.startsWith(w, i)) { i += w.length; return v; }
+    }
+    fail(`Unexpected character ${JSON.stringify(c)} — a value was expected`);
+  }
+  function obj() {
+    i++; const o = {}; ws();
+    if (text[i] === '}') { i++; return o; }
+    for (;;) {
+      ws();
+      if (lenient) while (text[i] === ',') { i++; ws(); }
+      if (lenient && text[i] === '}') { i++; return o; }
+      let k;
+      if (text[i] === '"' || (lenient && text[i] === "'")) k = str();
+      else if (lenient && /[A-Za-z_$\d]/.test(text[i] || '')) { const s = i; while (i < n && /[\w$-]/.test(text[i])) i++; k = text.slice(s, i); }
+      else fail(eoi() ? 'Unexpected end of input — object not closed' : 'Expected a property name in double quotes');
+      ws();
+      if (text[i] !== ':') fail(`Expected ':' after property name ${JSON.stringify(k)}`);
+      i++;
+      setProp(o, k, value());
+      ws();
+      if (text[i] === ',') { i++; continue; }
+      if (text[i] === '}') { i++; return o; }
+      if (lenient && text[i] === '"') continue; // missing comma
+      fail(eoi() ? 'Unexpected end of input — object not closed' : "Expected ',' or '}' after property value");
+    }
+  }
+  function arr() {
+    i++; const a = []; ws();
+    if (text[i] === ']') { i++; return a; }
+    for (;;) {
+      ws();
+      if (lenient) while (text[i] === ',') { i++; ws(); }
+      if (lenient && text[i] === ']') { i++; return a; }
+      a.push(value());
+      ws();
+      if (text[i] === ',') { i++; continue; }
+      if (text[i] === ']') { i++; return a; }
+      if (lenient && !eoi() && /["'{\[\d\-tfn]/.test(text[i])) continue; // missing comma
+      fail(eoi() ? 'Unexpected end of input — array not closed' : "Expected ',' or ']' after array element");
+    }
+  }
+  function str() {
+    const q = text[i]; const start = i; i++;
+    let out = '', s = i;
+    for (;;) {
+      if (i >= n) { i = start; fail('Unterminated string'); }
+      const c = text[i];
+      if (c === q) { out += text.slice(s, i); i++; return out; }
+      if (c === '\\') {
+        out += text.slice(s, i); i++;
+        const e = text[i];
+        const map = { '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' };
+        if (e in map) { out += map[e]; i++; }
+        else if (e === 'u') {
+          const h = text.slice(i + 1, i + 5);
+          if (!/^[0-9a-fA-F]{4}$/.test(h)) fail('Invalid \\u escape sequence');
+          out += String.fromCharCode(parseInt(h, 16)); i += 5;
+        } else if (lenient && e !== undefined) { out += e === "'" ? "'" : e === '\n' ? '' : e; i++; }
+        else fail(`Invalid escape sequence \\${e ?? ''}`);
+        s = i; continue;
+      }
+      if (c.charCodeAt(0) < 32) {
+        if (!lenient) fail(c === '\n' ? 'Line break inside a string (use \\n)' : 'Control character inside a string');
+      }
+      i++;
+    }
+  }
+  function num() {
+    const re = lenient ? /[+-]?(?:0[xX][0-9a-fA-F]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/y : /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
+    re.lastIndex = i;
+    const m = re.exec(text);
+    if (!m) fail('Invalid number');
+    i += m[0].length;
+    if (!lenient && /[\d.eE]/.test(text[i] || '')) fail('Invalid number');
+    return Number(m[0]);
+  }
+  ws();
+  if (eoi()) fail('Document is empty');
+  const v = value();
+  ws();
+  if (!eoi()) fail('Unexpected content after the end of the JSON value');
+  return v;
+}
+function posToLC(text, pos) {
+  let line = 1, last = -1;
+  for (let j = text.indexOf('\n'); j !== -1 && j < pos; j = text.indexOf('\n', j + 1)) { line++; last = j; }
+  return { line, col: pos - last };
+}
+function parseText(text) {
+  if (!text.trim()) return { ok: false, error: { msg: 'Document is empty', pos: 0 } };
+  try { return { ok: true, value: JSON.parse(text) }; } catch {}
+  try { return { ok: true, value: parseJSON(text, false) }; }
+  catch (e) { return { ok: false, error: { msg: e.message, pos: e.pos ?? 0 } }; }
+}
+function tryJSONL(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) return null;
+  const out = [];
+  for (const l of lines) { try { out.push(JSON.parse(l)); } catch { return null; } }
+  return out;
+}
+
+/* =========================================================================
+   State
+   ========================================================================= */
+const RH = 26, LH = 20;
+const S = {
+  doc: undefined, fileName: 'untitled.json', fileHandle: null, dirty: false,
+  view: 'tree', expanded: new Set(), sel: [], selKey: '[]',
+  undo: [], redo: [], ver: 0, taVer: -1, textError: null, textSnap: false,
+  indent: 2, search: { q: '', list: [], set: new Set(), idx: -1, cur: null, cs: false, re: false, bad: false },
+  editing: null, tablePath: [], tableSort: null, tableLimit: 500, tableSel: null,
+  sideOpen: true, tab: 'ins', queryRes: []
+};
+let ROWS = [], ROWIDX = new Map();
+
+function getAt(path, root = S.doc) {
+  let cur = root;
+  for (const seg of path) {
+    if (!isCont(cur)) return undefined;
+    if (Array.isArray(cur)) { if (typeof seg !== 'number' || seg < 0 || seg >= cur.length) return undefined; }
+    else if (typeof seg !== 'string' || !hasOwn(cur, seg)) return undefined;
+    cur = cur[seg];
+  }
+  return cur;
+}
+function setAt(path, v) {
+  if (!path.length) { S.doc = v; return; }
+  setProp(getAt(path.slice(0, -1)), path[path.length - 1], v);
+}
+const serialize = (v, ind = S.indent) => ind === 0 ? JSON.stringify(v) : JSON.stringify(v, null, ind);
+const fileText = () => serialize(S.doc) + (S.indent === 0 ? '' : '\n');
+
+/* ---------- history ---------- */
+const snapshot = () => S.doc === undefined ? undefined : JSON.stringify(S.doc);
+const restore = s => s === undefined ? undefined : JSON.parse(s);
+function pushUndo(snap = snapshot()) { S.undo.push(snap); if (S.undo.length > 150) S.undo.shift(); S.redo.length = 0; }
+function mutate(fn) {
+  if (S.doc === undefined && !fn.allowEmpty) return false;
+  const snap = snapshot();
+  let res;
+  try { res = fn(); } catch (e) { toast(e.message, 'err'); return false; }
+  pushUndo(snap);
+  afterDocChange();
+  return res === undefined ? true : res;
+}
+function undo() {
+  if (!S.undo.length) return;
+  S.redo.push(snapshot()); S.doc = restore(S.undo.pop());
+  if (S.doc === undefined) S.fileHandle = null;
+  afterDocChange();
+}
+function redo() {
+  if (!S.redo.length) return;
+  S.undo.push(snapshot()); S.doc = restore(S.redo.pop());
+  afterDocChange();
+}
+
+/* ---------- expansion bookkeeping ---------- */
+function remapExpanded(fn) {
+  const n = new Set();
+  for (const k of S.expanded) { const q = fn(JSON.parse(k)); if (q) n.add(pk(q)); }
+  S.expanded = n;
+}
+function shiftIdx(parent, from, delta) {
+  remapExpanded(p => {
+    const d = parent.length;
+    if (p.length > d && prefixMatch(p, parent) && typeof p[d] === 'number' && p[d] >= from) { const q = p.slice(); q[d] += delta; return q; }
+    return p;
+  });
+}
+function dropSub(path, keepSelf = false) { remapExpanded(p => prefixMatch(p, path) && !(keepSelf && p.length === path.length) ? null : p); }
+function swapIdx(parent, i, j) {
+  remapExpanded(p => {
+    const d = parent.length;
+    if (p.length > d && prefixMatch(p, parent) && (p[d] === i || p[d] === j)) { const q = p.slice(); q[d] = p[d] === i ? j : i; return q; }
+    return p;
+  });
+}
+function defaultExpand() {
+  S.expanded = new Set([pk([])]);
+  const walk = (v, path, d) => {
+    if (!isCont(v) || d > 1) return;
+    const ents = entriesOf(v);
+    if (d > 0 && ents.length > 60) return;
+    S.expanded.add(pk(path));
+    for (const [k, c] of ents.slice(0, 100)) walk(c, path.concat(k), d + 1);
+  };
+  walk(S.doc, [], 0);
+}
+function reveal(path) { for (let i = 0; i < path.length; i++) S.expanded.add(pk(path.slice(0, i))); }
+
+/* =========================================================================
+   Document lifecycle
+   ========================================================================= */
+function setDoc(v, name, handle = null, keepHistory = false) {
+  if (keepHistory && S.doc !== undefined) pushUndo(); else { S.undo = []; S.redo = []; }
+  S.doc = v;
+  if (name) S.fileName = name;
+  S.fileHandle = handle;
+  S.sel = []; S.selKey = '[]'; S.tablePath = []; S.tableSort = null; S.tableLimit = 500;
+  defaultExpand();
+  afterDocChange();
+  S.dirty = false; updateTitle();
+  if (S.view === 'text' && v === undefined) $('#ta').focus();
+}
+function loadText(text, name, handle = null) {
+  const r = parseText(text);
+  if (r.ok) { setDoc(r.value, name, handle); return true; }
+  const jl = tryJSONL(text);
+  if (jl) { setDoc(jl, name ? name.replace(/\.(jsonl|ndjson)$/i, '.json') : name, null); toast(`Loaded JSON Lines as an array of ${jl.length} items`); return true; }
+  try {
+    const v = parseJSON(text, true);
+    setDoc(v, name, null);
+    S.dirty = true; updateTitle();
+    toast('The input had syntax problems and was repaired');
+    return true;
+  } catch {}
+  // Show raw text with error so the user can fix it.
+  S.undo = []; S.redo = [];
+  S.doc = undefined; if (name) S.fileName = name; S.fileHandle = handle;
+  setView('text', true);
+  const ta = $('#ta'); ta.value = text; S.taVer = S.ver; S.textSnap = false;
+  onTextInput(true);
+  updateTitle();
+  toast('Invalid JSON — opened in the text view so you can fix it', 'err');
+  return false;
+}
+async function confirmDiscard() {
+  if (!S.dirty || S.doc === undefined) return true;
+  return confirmDlg('Discard unsaved changes?', 'The current document has changes that have not been saved.', 'Discard', true);
+}
+async function newDoc(v) {
+  if (!(await confirmDiscard())) return;
+  setDoc(v, v === undefined ? 'untitled.json' : 'untitled.json');
+  if (v !== undefined) { S.dirty = true; updateTitle(); }
+}
+
+/* ---------- open / save ---------- */
+async function openFile() {
+  if (!(await confirmDiscard())) return;
+  if (window.showOpenFilePicker && window.self === window.top) {
+    try {
+      const [h] = await window.showOpenFilePicker({ types: [{ description: 'JSON', accept: { 'application/json': ['.json', '.jsonl', '.ndjson', '.geojson', '.json5'], 'text/plain': ['.txt'] } }] });
+      const f = await h.getFile();
+      loadText(await f.text(), f.name, h);
+      return;
+    } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  $('#fileIn').click();
+}
+async function readFile(f) {
+  if (!f) return;
+  if (!(await confirmDiscard())) return;
+  if (f.size > 200 * 1048576) return toast('File is too large (over 200 MB)', 'err');
+  loadText(await f.text(), f.name, null);
+}
+async function save(as = false) {
+  if (S.doc === undefined) { if (S.textError) toast('Fix the JSON errors before saving', 'err'); return; }
+  const text = fileText();
+  if (!as && S.fileHandle) {
+    try { const w = await S.fileHandle.createWritable(); await w.write(text); await w.close(); markSaved(); toast(`Saved ${S.fileName}`); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  if (window.showSaveFilePicker && window.self === window.top) {
+    try {
+      const h = await window.showSaveFilePicker({ suggestedName: S.fileName, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+      const w = await h.createWritable(); await w.write(text); await w.close();
+      S.fileHandle = h; S.fileName = h.name; markSaved(); toast(`Saved ${S.fileName}`); return;
+    } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  download(text, S.fileName, 'application/json'); markSaved();
+}
+function download(text, name, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function markSaved() { S.dirty = false; updateTitle(); }
+async function loadURL() {
+  const u = await ask({ title: 'Load JSON from URL', label: 'The server must allow cross-origin requests (CORS).', placeholder: 'https://example.com/data.json', ok: 'Load' });
+  if (!u) return;
+  if (!(await confirmDiscard())) return;
+  try {
+    const r = await fetch(u.trim());
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const name = decodeURIComponent(new URL(u.trim(), location.href).pathname.split('/').pop() || 'download.json');
+    loadText(await r.text(), name.includes('.') ? name : name + '.json');
+  } catch (e) { toast(`Could not load URL: ${e.message}`, 'err'); }
+}
+
+/* =========================================================================
+   Central refresh
+   ========================================================================= */
+function afterDocChange(opts = {}) {
+  S.dirty = true; S.ver++;
+  if (opts.fromText) S.taVer = S.ver;
+  if (S.doc !== undefined) { while (S.sel.length && getAt(S.sel) === undefined) S.sel = S.sel.slice(0, -1); }
+  else S.sel = [];
+  S.selKey = pk(S.sel);
+  computeSearch();
+  renderView(opts);
+  renderInspector();
+  updateStatus();
+  updateTitle();
+  autosave();
+}
+function renderView(opts = {}) {
+  const none = S.doc === undefined;
+  $('#empty').hidden = !(none && S.view !== 'text');
+  $('#treeView').hidden = S.view !== 'tree';
+  $('#textView').hidden = S.view !== 'text';
+  $('#tableView').hidden = S.view !== 'table';
+  $$('#viewSeg button').forEach(b => b.classList.toggle('on', b.dataset.view === S.view));
+  if (S.view === 'tree') renderTree();
+  else if (S.view === 'text') { if (!opts.fromText && S.taVer !== S.ver) fillText(); }
+  else renderTable();
+}
+function updateTitle() {
+  $('#fnameText').textContent = S.fileName;
+  $('#dirtyDot').hidden = !(S.dirty && S.doc !== undefined);
+  document.title = (S.dirty && S.doc !== undefined ? '• ' : '') + S.fileName + ' — JSON Workbench';
+  $('#bUndo').disabled = !S.undo.length; $('#bRedo').disabled = !S.redo.length;
+  $('#bSave').disabled = S.doc === undefined;
+}
+const statsLater = debounce(() => {
+  if (S.doc === undefined) { $('#stInfo').textContent = ''; return; }
+  let nodes = 0, depth = 0;
+  const st = [[S.doc, 1]];
+  while (st.length) {
+    const [x, d] = st.pop(); nodes++; if (d > depth) depth = d;
+    if (isCont(x)) for (const c of (Array.isArray(x) ? x : Object.values(x))) st.push([c, d + 1]);
+  }
+  const size = new Blob([JSON.stringify(S.doc)]).size;
+  $('#stInfo').textContent = `${typeOf(S.doc)} · ${plural(nodes, 'node')} · depth ${depth} · ${fmtBytes(size)} minified`;
+}, 200);
+function updateStatus() {
+  const v = $('#stValid');
+  if (S.view === 'text' && S.textError) {
+    const { line, col } = posToLC($('#ta').value, S.textError.pos);
+    v.className = 'bad'; v.textContent = `✕ Invalid JSON (line ${line}, col ${col})`;
+  } else if (S.doc === undefined) { v.className = ''; v.textContent = 'No document'; }
+  else { v.className = 'ok'; v.textContent = '✓ Valid JSON'; }
+  $('#stPath').textContent = S.doc === undefined ? '' : pathStr(S.sel);
+  statsLater();
+}
+const autosave = debounce(() => {
+  if (S.doc === undefined) { store.del('jwb.session'); return; }
+  const t = JSON.stringify(S.doc);
+  if (t.length < 3e6) store.set('jwb.session', JSON.stringify({ name: S.fileName, text: t, dirty: S.dirty }));
+  else store.del('jwb.session');
+}, 800);
+
+/* =========================================================================
+   Tree view (virtualised)
+   ========================================================================= */
+const treeScroll = () => $('#treeScroll');
+function buildRows() {
+  ROWS = []; ROWIDX = new Map();
+  if (S.doc === undefined) return;
+  const walk = (v, path, depth, key) => {
+    const cont = isCont(v), k = pk(path), open = cont && S.expanded.has(k);
+    ROWIDX.set(k, ROWS.length);
+    ROWS.push({ path, key, v, depth, cont, open, k });
+    if (open) {
+      if (Array.isArray(v)) for (let i = 0; i < v.length; i++) walk(v[i], path.concat(i), depth + 1, i);
+      else for (const kk of Object.keys(v)) walk(v[kk], path.concat(kk), depth + 1, kk);
+    }
+  };
+  walk(S.doc, [], 0, '$');
+}
+function renderTree() {
+  if (S.editing) S.editing = null;
+  buildRows();
+  $('#treeSpacer').style.height = ROWS.length * RH + 'px';
+  renderWindow(true);
+}
+function short(x) {
+  if (Array.isArray(x)) return `[${x.length}]`;
+  if (isCont(x)) return '{…}';
+  if (typeof x === 'string') return JSON.stringify(x.length > 24 ? x.slice(0, 24) + '…' : x);
+  return String(x);
+}
+function preview(v, max = 100) {
+  let s = Array.isArray(v) ? '[' : '{';
+  const ents = Array.isArray(v) ? v : Object.keys(v);
+  for (let i = 0; i < ents.length && s.length < max; i++) {
+    s += (i ? ', ' : '') + (Array.isArray(v) ? short(v[i]) : `${ents[i]}: ${short(v[ents[i]])}`);
+  }
+  s += Array.isArray(v) ? ']' : '}';
+  return s.length > max ? s.slice(0, max - 1) + '…' : s;
+}
+function valueHTML(v, open) {
+  const t = typeOf(v);
+  if (t === 'array' || t === 'object') {
+    const n = t === 'array' ? v.length : Object.keys(v).length;
+    const badge = `<span class="badge">${t === 'array' ? '[' + n + ']' : '{' + n + '}'}</span>`;
+    return `<span class="v cv">${badge}</span>` + (!open && n ? `<span class="pv">${esc(preview(v))}</span>` : '');
+  }
+  if (t === 'string') {
+    const sw = /^#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(v) || /^(rgb|hsl)a?\(/i.test(v) ? `<span class="sw" style="background:${esc(v)}"></span>` : '';
+    return `<span class="v t-string" title="${esc(v.length > 2000 ? v.slice(0, 2000) + '…' : v)}">${sw}${esc(JSON.stringify(v.length > 400 ? v.slice(0, 400) + '…' : v))}</span>`;
+  }
+  return `<span class="v t-${t}">${esc(String(v))}</span>`;
+}
+function paintSel(i) {
+  const sp = $('#treeSpacer');
+  const el = i === undefined ? null : sp.querySelector(`[data-i="${i}"]`);
+  if (!el || S.editing) { renderWindow(true); return; }
+  sp.querySelectorAll('.row.sel').forEach(r => r.classList.remove('sel'));
+  el.classList.add('sel');
+}
+let rafPending = false, lastRange = '';
+function renderWindow(force) {
+  const sc = treeScroll();
+  if (S.view !== 'tree' || S.doc === undefined) { $('#treeSpacer').innerHTML = ''; return; }
+  const top = sc.scrollTop, h = sc.clientHeight || 600;
+  const start = Math.max(0, Math.floor(top / RH) - 10), end = Math.min(ROWS.length, start + 400, Math.ceil((top + h) / RH) + 10);
+  const range = start + ':' + end;
+  if (!force && range === lastRange && !S.editing) return;
+  lastRange = range;
+  if (S.editing) {
+    const ei = S.editing.idx;
+    if (ei >= start && ei < end && !force) return;
+    commitEdit();
+    return;
+  }
+  const sr = S.search;
+  let html = '';
+  for (let i = start; i < end; i++) {
+    const r = ROWS[i];
+    let cls = 'row';
+    if (sr.set.has(r.k)) cls += r.k === sr.cur ? ' cur' : ' match';
+    if (r.k === S.selKey) cls += ' sel';
+    html += `<div class="${cls}" data-i="${i}" style="top:${i * RH}px;padding-left:${6 + r.depth * 18}px">`;
+    html += r.cont ? `<span class="tog${r.open ? ' open' : ''}">${I.chev}</span>` : '<span class="tog none"></span>';
+    if (!r.path.length) html += '<span class="k root">$</span>';
+    else if (typeof r.key === 'number') html += `<span class="k idx">${r.key}</span>`;
+    else if (r.key === '') html += '<span class="k empty">""</span>';
+    else html += `<span class="k" title="${esc(r.key)}">${esc(r.key)}</span>`;
+    html += '<span class="colon">:</span>' + valueHTML(r.v, r.open);
+    html += '<span class="acts">';
+    if (r.cont) html += `<button data-a="add" title="Add child (Shift+Insert)">${I.plus}</button>`;
+    if (r.path.length) html += `<button data-a="dup" title="Duplicate (Ctrl+D)">${I.dup}</button><button class="del" data-a="del" title="Delete (Del)">${I.trash}</button>`;
+    html += `<button data-a="menu" title="More actions">${I.more}</button></span></div>`;
+  }
+  $('#treeSpacer').innerHTML = html;
+}
+function scheduleWindow() { if (rafPending) return; rafPending = true; requestAnimationFrame(() => { rafPending = false; renderWindow(); }); }
+function scrollToIndex(i, center) {
+  const sc = treeScroll(), top = i * RH;
+  if (center) { if (top < sc.scrollTop || top + RH > sc.scrollTop + sc.clientHeight) sc.scrollTop = top - sc.clientHeight / 2 + RH; return; }
+  if (top < sc.scrollTop) sc.scrollTop = top;
+  else if (top + RH > sc.scrollTop + sc.clientHeight) sc.scrollTop = top + RH - sc.clientHeight;
+}
+function select(path, opt = {}) {
+  if (S.doc === undefined || getAt(path) === undefined) return;
+  S.sel = path; S.selKey = pk(path);
+  if (S.view === 'tree') {
+    if (opt.reveal) { const before = S.expanded.size; reveal(path); if (S.expanded.size !== before || !ROWIDX.has(S.selKey)) { buildRows(); $('#treeSpacer').style.height = ROWS.length * RH + 'px'; } }
+    const i = ROWIDX.get(S.selKey);
+    if (i !== undefined && opt.scroll !== false) scrollToIndex(i, opt.center);
+    paintSel(i);
+  } else if (S.view === 'table') { /* table keeps its own focus */ }
+  renderInspector(); updateStatus();
+}
+function toggle(path, open) {
+  const k = pk(path);
+  const now = open ?? !S.expanded.has(k);
+  if (now) S.expanded.add(k); else S.expanded.delete(k);
+  renderTree();
+}
+function expandAll(path) {
+  let count = 0;
+  const walk = (v, p) => {
+    if (!isCont(v) || count > 300000) return;
+    S.expanded.add(pk(p)); count++;
+    for (const [k, c] of entriesOf(v)) walk(c, p.concat(k));
+  };
+  walk(getAt(path), path);
+  if (count > 300000) toast('Large document: expanded the first 300,000 containers');
+  renderTree();
+}
+function collapseAll(path) {
+  remapExpanded(p => prefixMatch(p, path) && p.length > path.length ? null : p);
+  if (!path.length) S.expanded.add('[]');
+  renderTree();
+}
+
+/* ---------- inline editing ---------- */
+function parseInput(s, origType) {
+  if (origType === 'string') return s;
+  const t = s.trim();
+  if (t === '') return '';
+  try { return JSON.parse(t); } catch {}
+  try { return parseJSON(t, true); } catch {}
+  return s;
+}
+function startEdit(path, field, isNew = false) {
+  if (S.view !== 'tree') return;
+  reveal(path); renderTree();
+  const idx = ROWIDX.get(pk(path)); if (idx === undefined) return;
+  const r = ROWS[idx];
+  if (field === 'key' && (typeof r.key === 'number' || !r.path.length)) field = 'value';
+  if (field === 'value' && r.cont) return;
+  if (field === 'value' && typeof r.v === 'string' && (r.v.includes('\n') || r.v.length > 1000)) {
+    S.sel = path; S.selKey = pk(path); renderWindow(true); openSide('ins');
+    const ed = $('#insEd'); if (ed) { ed.focus(); toast('Editing long/multi-line text in the Inspector'); }
+    return;
+  }
+  S.sel = path; S.selKey = pk(path);
+  scrollToIndex(idx); renderWindow(true); renderInspector(); updateStatus();
+  const rowEl = $(`#treeSpacer [data-i="${idx}"]`); if (!rowEl) return;
+  const target = rowEl.querySelector(field === 'key' ? '.k' : '.v');
+  const inp = document.createElement('input');
+  inp.className = 'inl' + (field === 'key' ? ' key' : '');
+  inp.spellcheck = false;
+  inp.value = field === 'key' ? String(r.key) : typeof r.v === 'string' ? r.v : String(r.v);
+  target.replaceWith(inp);
+  if (field === 'key') rowEl.querySelector('.pv')?.remove();
+  S.editing = { idx, path, field, inp, orig: r.v, isNew };
+  inp.focus(); inp.select();
+  inp.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter') { e.preventDefault(); commitEdit(isNew && field === 'key' ? 'value' : null); }
+    else if (e.key === 'Tab' && field === 'key') { e.preventDefault(); commitEdit('value'); }
+    else if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+  });
+  inp.addEventListener('blur', () => commitEdit());
+}
+function cancelEdit() { if (!S.editing) return; S.editing = null; renderWindow(true); treeScroll().focus(); }
+function commitEdit(next) {
+  const ed = S.editing; if (!ed) return;
+  S.editing = null;
+  const val = ed.inp.value;
+  let newPath = ed.path, ok = true;
+  if (ed.field === 'key') {
+    if (val !== String(ed.path[ed.path.length - 1])) ok = mutate(() => { newPath = renameKey(ed.path, val); });
+    else renderWindow(true);
+  } else {
+    const nv = parseInput(val, ed.isNewValue ? null : typeOf(ed.orig));
+    if (nv !== ed.orig && !(Number.isNaN(nv))) ok = mutate(() => setAt(ed.path, nv));
+    else renderWindow(true);
+  }
+  if (ok && newPath) { S.sel = newPath; S.selKey = pk(newPath); renderWindow(true); renderInspector(); updateStatus(); }
+  if (next === 'value' && ok) {
+    setTimeout(() => { startEdit(newPath, 'value'); if (S.editing) S.editing.isNewValue = getAt(newPath) === null; }, 0);
+  } else if (document.activeElement === document.body || !document.activeElement) treeScroll().focus();
+}
+
+/* ---------- structural operations ---------- */
+function renameKey(path, newKey) {
+  const pp = path.slice(0, -1), old = path[path.length - 1], o = getAt(pp);
+  if (newKey === old) return path;
+  if (hasOwn(o, newKey)) throw new Error(`Key "${newKey}" already exists`);
+  reorderObj(o, Object.keys(o).map(k => [k === old ? newKey : k, o[k]]));
+  const np = pp.concat(newKey);
+  remapExpanded(p => prefixMatch(p, path) ? np.concat(p.slice(path.length)) : p);
+  return np;
+}
+function actAdd(path) {
+  const c = getAt(path);
+  if (!isCont(c)) return actInsertAfter(path);
+  let np;
+  if (!mutate(() => {
+    if (Array.isArray(c)) { c.push(null); np = path.concat(c.length - 1); }
+    else { const k = uniqueKey(c, 'newKey'); setProp(c, k, null); np = path.concat(k); }
+    S.expanded.add(pk(path));
+  })) return;
+  afterInsert(np, !Array.isArray(c));
+}
+function actInsertAfter(path) {
+  if (!path.length) return actAdd(path);
+  const pp = path.slice(0, -1), p = getAt(pp), key = path[path.length - 1];
+  let np;
+  if (!mutate(() => {
+    if (Array.isArray(p)) { shiftIdx(pp, key + 1, 1); p.splice(key + 1, 0, null); np = pp.concat(key + 1); }
+    else {
+      const k = uniqueKey(p, 'newKey'); const ents = [];
+      for (const kk of Object.keys(p)) { ents.push([kk, p[kk]]); if (kk === key) ents.push([k, null]); }
+      reorderObj(p, ents); np = pp.concat(k);
+    }
+  })) return;
+  afterInsert(np, !Array.isArray(p));
+}
+function afterInsert(np, isObj) {
+  if (S.view === 'tree') {
+    startEdit(np, isObj ? 'key' : 'value', true);
+    if (S.editing && !isObj) S.editing.isNewValue = true;
+  } else select(np);
+}
+function actDelete(path) {
+  if (!path.length) { toast('The root cannot be deleted — use New to start over', 'err'); return; }
+  const pp = path.slice(0, -1), p = getAt(pp), key = path[path.length - 1];
+  let next;
+  if (Array.isArray(p)) next = p.length > 1 ? pp.concat(key < p.length - 1 ? key : key - 1) : pp;
+  else { const ks = Object.keys(p), i = ks.indexOf(key); next = ks.length > 1 ? pp.concat(ks[i + 1] ?? ks[i - 1]) : pp; }
+  mutate(() => {
+    dropSub(path);
+    if (Array.isArray(p)) { p.splice(key, 1); shiftIdx(pp, key + 1, -1); }
+    else delete p[key];
+  });
+  select(next);
+}
+function actDuplicate(path) {
+  if (!path.length) return;
+  const pp = path.slice(0, -1), p = getAt(pp), key = path[path.length - 1], c = clone(getAt(path));
+  let np;
+  mutate(() => {
+    if (Array.isArray(p)) { shiftIdx(pp, key + 1, 1); p.splice(key + 1, 0, c); np = pp.concat(key + 1); }
+    else {
+      const k = uniqueKey(p, key + '_copy'); const ents = [];
+      for (const kk of Object.keys(p)) { ents.push([kk, p[kk]]); if (kk === key) ents.push([k, c]); }
+      reorderObj(p, ents); np = pp.concat(k);
+    }
+  });
+  if (np) select(np, { reveal: true });
+}
+function actMove(path, dir) {
+  if (!path.length) return;
+  const pp = path.slice(0, -1), p = getAt(pp), key = path[path.length - 1];
+  let np;
+  if (Array.isArray(p)) {
+    const j = key + dir; if (j < 0 || j >= p.length) return;
+    mutate(() => { [p[key], p[j]] = [p[j], p[key]]; swapIdx(pp, key, j); }); np = pp.concat(j);
+  } else {
+    const ks = Object.keys(p), i = ks.indexOf(key), j = i + dir; if (j < 0 || j >= ks.length) return;
+    [ks[i], ks[j]] = [ks[j], ks[i]];
+    mutate(() => reorderObj(p, ks.map(k => [k, p[k]]))); np = path;
+  }
+  select(np);
+}
+function convert(v, t) {
+  const from = typeOf(v);
+  if (from === t) return v;
+  const tryParse = s => { try { return JSON.parse(s); } catch { return undefined; } };
+  switch (t) {
+    case 'string': return isCont(v) ? JSON.stringify(v) : v === null ? '' : String(v);
+    case 'number': {
+      if (typeof v === 'boolean') return v ? 1 : 0;
+      if (typeof v === 'string') { const n = Number(v.trim().replace(/,/g, '')); return v.trim() !== '' && Number.isFinite(n) ? n : 0; }
+      if (Array.isArray(v)) return v.length;
+      if (isCont(v)) return Object.keys(v).length;
+      return 0;
+    }
+    case 'boolean':
+      if (typeof v === 'string') return /^(true|yes|y|on|1)$/i.test(v.trim());
+      if (typeof v === 'number') return v !== 0;
+      return isCont(v);
+    case 'null': return null;
+    case 'object': {
+      if (Array.isArray(v)) { const o = {}; v.forEach((x, i) => setProp(o, String(i), x)); return o; }
+      if (typeof v === 'string') { const p = tryParse(v); if (isCont(p) && !Array.isArray(p)) return p; }
+      return v === null || v === '' ? {} : { value: v };
+    }
+    case 'array': {
+      if (isCont(v)) return Object.values(v);
+      if (typeof v === 'string') { const p = tryParse(v); if (Array.isArray(p)) return p; }
+      return v === null || v === '' ? [] : [v];
+    }
+  }
+  return v;
+}
+function actConvert(path, t) {
+  const v = getAt(path);
+  if (typeOf(v) === t) return;
+  mutate(() => { dropSub(path, true); setAt(path, convert(v, t)); });
+  select(path);
+}
+
+/* ---------- transforms ---------- */
+function sortKeysDeep(v) {
+  if (Array.isArray(v)) return v.map(sortKeysDeep);
+  if (isCont(v)) { const o = {}; for (const k of Object.keys(v).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))) setProp(o, k, sortKeysDeep(v[k])); return o; }
+  return v;
+}
+function removeNulls(v) {
+  if (Array.isArray(v)) return v.filter(x => x !== null).map(removeNulls);
+  if (isCont(v)) { const o = {}; for (const k of Object.keys(v)) if (v[k] !== null) setProp(o, k, removeNulls(v[k])); return o; }
+  return v;
+}
+function parseEmbedded(v) {
+  if (typeof v === 'string') {
+    const t = v.trim();
+    if ((t[0] === '{' && t.endsWith('}')) || (t[0] === '[' && t.endsWith(']'))) { try { return parseEmbedded(JSON.parse(t)); } catch {} }
+    return v;
+  }
+  if (Array.isArray(v)) return v.map(parseEmbedded);
+  if (isCont(v)) { const o = {}; for (const k of Object.keys(v)) setProp(o, k, parseEmbedded(v[k])); return o; }
+  return v;
+}
+function flatten(v) {
+  const out = {};
+  const walk = (x, pre) => {
+    if (isCont(x) && entriesOf(x).length) {
+      for (const [k, c] of entriesOf(x)) walk(c, typeof k === 'number' ? `${pre}[${k}]` : pre ? `${pre}.${k}` : k);
+    } else setProp(out, pre || '$', x);
+  };
+  walk(v, '');
+  return out;
+}
+function unflatten(o) {
+  if (!isCont(o) || Array.isArray(o)) throw new Error('Unflatten needs an object with path-like keys');
+  let root;
+  for (const [key, val] of Object.entries(o)) {
+    const toks = [];
+    key.replace(/\[(\d+)\]|([^.[\]]+)/g, (_, idx, name) => { toks.push(idx !== undefined ? Number(idx) : name); return ''; });
+    if (!toks.length) continue;
+    if (root === undefined) root = typeof toks[0] === 'number' ? [] : {};
+    let cur = root;
+    toks.forEach((t, i) => {
+      if (i === toks.length - 1) { setProp(cur, t, val); return; }
+      if (!isCont(cur[t])) setProp(cur, t, typeof toks[i + 1] === 'number' ? [] : {});
+      cur = cur[t];
+    });
+  }
+  return root ?? {};
+}
+function getField(x, f) { let c = x; for (const part of f.split('.')) { if (!isCont(c)) return undefined; c = c[part]; } return c; }
+function cmpVals(a, b) {
+  if (a === undefined) return b === undefined ? 0 : 1;
+  if (b === undefined) return -1;
+  if (typeof a === 'number' && typeof b === 'number') return a - b;
+  if (typeof a === 'boolean' && typeof b === 'boolean') return a - b;
+  if (a === null) return b === null ? 0 : 1;
+  if (b === null) return -1;
+  const sa = isCont(a) ? JSON.stringify(a) : String(a), sb = isCont(b) ? JSON.stringify(b) : String(b);
+  return sa.localeCompare(sb, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+/* ---------- JSON Schema inference ---------- */
+function detectFormat(s) {
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/.test(s)) return 'date-time';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return 'date';
+  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s)) return 'email';
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return 'uuid';
+  if (/^https?:\/\/\S+$/.test(s)) return 'uri';
+  return null;
+}
+function inferSchema(v) {
+  const t = typeOf(v);
+  if (t === 'null' || t === 'boolean') return { type: t };
+  if (t === 'number') return { type: Number.isInteger(v) ? 'integer' : 'number' };
+  if (t === 'string') { const f = detectFormat(v); return f ? { type: 'string', format: f } : { type: 'string' }; }
+  if (t === 'array') { const s = { type: 'array' }; if (v.length) s.items = mergeSchemas(v.map(inferSchema)); return s; }
+  const props = {};
+  for (const k of Object.keys(v)) setProp(props, k, inferSchema(v[k]));
+  const s = { type: 'object', properties: props };
+  if (Object.keys(v).length) s.required = Object.keys(v);
+  return s;
+}
+function mergeSchemas(list) {
+  const groups = new Map();
+  for (const s of list) { const g = s.type === 'integer' ? 'number' : s.type; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(s); }
+  const merged = [];
+  for (const [g, ss] of groups) {
+    if (g === 'number') merged.push({ type: ss.some(s => s.type === 'number') ? 'number' : 'integer' });
+    else if (g === 'string') { const f = ss[0].format; merged.push(f && ss.every(s => s.format === f) ? { type: 'string', format: f } : { type: 'string' }); }
+    else if (g === 'array') { const items = ss.filter(s => s.items).map(s => s.items); merged.push(items.length ? { type: 'array', items: mergeSchemas(items) } : { type: 'array' }); }
+    else if (g === 'object') {
+      const props = new Map(), counts = new Map();
+      for (const s of ss) for (const k of Object.keys(s.properties)) {
+        if (!props.has(k)) { props.set(k, []); counts.set(k, 0); }
+        props.get(k).push(s.properties[k]); counts.set(k, counts.get(k) + 1);
+      }
+      const p = {}; for (const [k, l] of props) setProp(p, k, mergeSchemas(l));
+      const req = [...counts].filter(([, c]) => c === ss.length).map(([k]) => k);
+      const o = { type: 'object', properties: p }; if (req.length) o.required = req;
+      merged.push(o);
+    } else merged.push({ type: g });
+  }
+  if (merged.length === 1) return merged[0];
+  if (merged.every(m => Object.keys(m).length === 1)) return { type: merged.map(m => m.type) };
+  return { anyOf: merged };
+}
+
+/* ---------- CSV ---------- */
+function toCSV(arr) {
+  const cols = [], seen = new Set();
+  const objs = arr.every(x => isCont(x) && !Array.isArray(x));
+  if (objs) for (const x of arr) for (const k of Object.keys(x)) if (!seen.has(k)) { seen.add(k); cols.push(k); }
+  const cell = v => {
+    if (v === undefined || v === null) return '';
+    const s = isCont(v) ? JSON.stringify(v) : String(v);
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = objs ? [cols.map(cell).join(',')] : ['value'];
+  for (const x of arr) lines.push(objs ? cols.map(c => cell(x[c])).join(',') : cell(x));
+  return lines.join('\r\n');
+}
+
+/* =========================================================================
+   JSONPath
+   ========================================================================= */
+function findClose(s, i) {
+  let q = null, depth = 0;
+  for (let j = i + 1; j < s.length; j++) {
+    const c = s[j];
+    if (q) { if (c === '\\') j++; else if (c === q) q = null; continue; }
+    if (c === '"' || c === "'") q = c;
+    else if (c === '(' || c === '[') depth++;
+    else if (c === ')' || (c === ']' && depth > 0)) depth--;
+    else if (c === ']' && depth === 0) return j;
+  }
+  throw new Error('Missing closing ]');
+}
+function splitTop(s, sep) {
+  const out = []; let q = null, depth = 0, start = 0;
+  for (let j = 0; j < s.length; j++) {
+    const c = s[j];
+    if (q) { if (c === '\\') j++; else if (c === q) q = null; continue; }
+    if (c === '"' || c === "'") q = c;
+    else if (c === '/' && depth >= 0 && /[=~]\s*$/.test(s.slice(start, j))) { q = '/'; }
+    else if (c === '(' || c === '[') depth++;
+    else if (c === ')' || c === ']') depth--;
+    else if (depth === 0 && s.startsWith(sep, j)) { out.push(s.slice(start, j)); start = j + sep.length; j += sep.length - 1; }
+  }
+  out.push(s.slice(start));
+  return out;
+}
+function unquote(s) {
+  s = s.trim();
+  if ((s[0] === "'" && s.endsWith("'")) || (s[0] === '"' && s.endsWith('"'))) {
+    const inner = s.slice(1, -1);
+    return inner.replace(/\\(.)/g, (_, c) => ({ n: '\n', t: '\t', r: '\r' }[c] ?? c));
+  }
+  return null;
+}
+function parsePath(expr) {
+  const segs = []; let i = 1;
+  while (i < expr.length) {
+    const c = expr[i];
+    if (/\s/.test(c)) { i++; continue; }
+    let rec = false;
+    if (expr.startsWith('..', i)) { rec = true; i += 2; }
+    else if (c === '.') i++;
+    else if (c !== '[') throw new Error(`Unexpected "${c}" at position ${i}`);
+    if (expr[i] === '[') {
+      const j = findClose(expr, i);
+      segs.push({ rec, sel: parseBracket(expr.slice(i + 1, j)) });
+      i = j + 1;
+    } else {
+      const m = /^(\*|[^.[\]\s]+)/.exec(expr.slice(i));
+      if (!m) throw new Error(`Expected a property name at position ${i}`);
+      segs.push({ rec, sel: m[1] === '*' ? { t: 'wild' } : { t: 'name', k: m[1] } });
+      i += m[1].length;
+    }
+  }
+  return segs;
+}
+function parseBracket(s) {
+  const t = s.trim();
+  if (t === '*') return { t: 'wild' };
+  if (t[0] === '?') {
+    let f = t.slice(1).trim();
+    if (f[0] === '(' && f.endsWith(')')) f = f.slice(1, -1);
+    return { t: 'filter', fn: compileFilter(f) };
+  }
+  const sl = /^(-?\d*)\s*:\s*(-?\d*)\s*(?::\s*(-?\d+))?$/.exec(t);
+  if (sl) return { t: 'slice', a: sl[1] === '' ? null : +sl[1], b: sl[2] === '' ? null : +sl[2], st: sl[3] ? +sl[3] : 1 };
+  const items = splitTop(t, ',').map(x => {
+    const u = unquote(x); if (u !== null) return u;
+    const y = x.trim();
+    if (/^-?\d+$/.test(y)) return +y;
+    if (!y) throw new Error('Empty selector []');
+    return y;
+  });
+  return { t: 'union', items };
+}
+function parseLiteral(s) {
+  s = s.trim();
+  const u = unquote(s); if (u !== null) return u;
+  const re = /^\/(.*)\/([gimsuy]*)$/.exec(s); if (re) return new RegExp(re[1], re[2].replace('g', ''));
+  if (s === 'true') return true; if (s === 'false') return false; if (s === 'null') return null;
+  if (s !== '' && !isNaN(+s)) return +s;
+  if (s[0] === '@' || s[0] === '$') return { ref: s };
+  throw new Error(`Cannot understand value "${s}" in filter`);
+}
+function compileFilter(src) {
+  const ors = splitTop(src, '||').map(o => splitTop(o, '&&').map(compileTerm));
+  return (v, root) => ors.some(and => and.every(fn => fn(v, root)));
+}
+function compileTerm(term) {
+  term = term.trim();
+  while (term[0] === '(' && term.endsWith(')')) term = term.slice(1, -1).trim();
+  let neg = false;
+  if (term[0] === '!' && term[1] !== '=') { neg = true; term = term.slice(1).trim(); }
+  const m = /^(.+?)\s*(==|!=|<=|>=|=~|<|>)\s*(.+)$/.exec(term);
+  const evalRef = (ref, v, root) => {
+    const base = ref[0] === '$' ? root : v;
+    if (ref.length === 1) return [base];
+    return runPath(base, '$' + ref.slice(1), true).map(n => n.value);
+  };
+  if (!m) {
+    if (term[0] !== '@' && term[0] !== '$') throw new Error(`Filter term "${term}" must start with @`);
+    return (v, root) => { const vals = evalRef(term, v, root); const r = vals.length > 0 && vals.some(x => x !== false && x !== null); return neg ? !r : r; };
+  }
+  const left = m[1].trim(), op = m[2];
+  const rightLit = parseLiteral(m[3]);
+  if (left[0] !== '@' && left[0] !== '$') throw new Error(`Filter left side "${left}" must start with @`);
+  const cmp = (a, b) => {
+    switch (op) {
+      case '==': return isCont(a) || isCont(b) ? JSON.stringify(a) === JSON.stringify(b) : a === b;
+      case '!=': return isCont(a) || isCont(b) ? JSON.stringify(a) !== JSON.stringify(b) : a !== b;
+      case '=~': { const re = b instanceof RegExp ? b : new RegExp(String(b)); return typeof a === 'string' || typeof a === 'number' ? re.test(String(a)) : false; }
+      default: {
+        if (!((typeof a === 'number' && typeof b === 'number') || (typeof a === 'string' && typeof b === 'string'))) return false;
+        return op === '<' ? a < b : op === '<=' ? a <= b : op === '>' ? a > b : a >= b;
+      }
+    }
+  };
+  return (v, root) => {
+    const lv = evalRef(left, v, root);
+    const rv = rightLit && rightLit.ref ? evalRef(rightLit.ref, v, root) : [rightLit];
+    let r = op === '!=' ? lv.length > 0 && lv.every(a => rv.every(b => cmp(a, b))) : lv.some(a => rv.some(b => cmp(a, b)));
+    return neg ? !r : r;
+  };
+}
+function runPath(root, expr, inner = false) {
+  expr = expr.trim();
+  if (!expr) throw new Error('Enter a JSONPath expression, e.g. $.items[*].name');
+  if (expr[0] !== '$') expr = (expr[0] === '.' || expr[0] === '[') ? '$' + expr : '$.' + expr;
+  const segs = parsePath(expr);
+  let nodes = [{ path: [], value: root }];
+  const descend = (n, out) => { out.push(n); if (isCont(n.value)) for (const [k, c] of entriesOf(n.value)) descend({ path: n.path.concat(k), value: c }, out); };
+  const docRoot = inner ? S.doc : root;
+  for (const seg of segs) {
+    let src = nodes;
+    if (seg.rec) { src = []; for (const n of nodes) descend(n, src); }
+    const out = [];
+    const pushKey = (n, k) => {
+      const v = n.value;
+      if (Array.isArray(v)) {
+        if (typeof k === 'number' || /^-?\d+$/.test(k)) { let ix = +k; if (ix < 0) ix += v.length; if (ix >= 0 && ix < v.length) out.push({ path: n.path.concat(ix), value: v[ix] }); }
+        else if (k === 'length') out.push({ path: n.path.concat('length'), value: v.length, virtual: true });
+      } else if (isCont(v)) { const ks = String(k); if (hasOwn(v, ks)) out.push({ path: n.path.concat(ks), value: v[ks] }); }
+      else if (typeof v === 'string' && k === 'length') out.push({ path: n.path.concat('length'), value: v.length, virtual: true });
+    };
+    for (const n of src) {
+      const v = n.value, sel = seg.sel;
+      if (sel.t === 'name') pushKey(n, sel.k);
+      else if (sel.t === 'union') sel.items.forEach(k => pushKey(n, k));
+      else if (sel.t === 'wild') { if (isCont(v)) for (const [k, c] of entriesOf(v)) out.push({ path: n.path.concat(k), value: c }); }
+      else if (sel.t === 'slice') {
+        if (!Array.isArray(v)) continue;
+        const len = v.length, st = sel.st || 1;
+        const norm = (x, d) => x === null ? d : x < 0 ? Math.max(len + x, st > 0 ? 0 : -1) : Math.min(x, len);
+        if (st > 0) { for (let ix = norm(sel.a, 0); ix < norm(sel.b, len); ix += st) out.push({ path: n.path.concat(ix), value: v[ix] }); }
+        else { for (let ix = sel.a === null ? len - 1 : norm(sel.a, len - 1); ix > (sel.b === null ? -1 : norm(sel.b, -1)); ix += st) if (ix < len) out.push({ path: n.path.concat(ix), value: v[ix] }); }
+      } else if (sel.t === 'filter') {
+        if (isCont(v)) for (const [k, c] of entriesOf(v)) { let ok = false; try { ok = sel.fn(c, docRoot); } catch {} if (ok) out.push({ path: n.path.concat(k), value: c }); }
+      }
+    }
+    nodes = out;
+  }
+  if (!inner) {
+    // de-duplicate (recursive descent can reach the same node twice)
+    const seen = new Set();
+    nodes = nodes.filter(n => { const k = pk(n.path); if (seen.has(k)) return false; seen.add(k); return true; });
+  }
+  return nodes;
+}
+
+/* =========================================================================
+   Search
+   ========================================================================= */
+function makeTester() {
+  const { q, cs, re } = S.search;
+  if (!q) return null;
+  if (re) { try { const r = new RegExp(q, cs ? '' : 'i'); S.search.bad = false; return s => r.test(s); } catch { S.search.bad = true; return null; } }
+  S.search.bad = false;
+  const qq = cs ? q : q.toLowerCase();
+  return s => (cs ? s : s.toLowerCase()).includes(qq);
+}
+function computeSearch() {
+  const sr = S.search;
+  const test = makeTester();
+  sr.list = []; sr.set = new Set();
+  if (test && S.doc !== undefined) {
+    const walk = (v, path) => {
+      if (sr.list.length >= 20000) return;
+      const key = path[path.length - 1];
+      let hit = path.length && typeof key === 'string' && test(key);
+      if (!isCont(v)) hit = hit || test(v === null ? 'null' : String(v));
+      if (hit) sr.list.push(path);
+      if (isCont(v)) for (const [k, c] of entriesOf(v)) walk(c, path.concat(k));
+    };
+    walk(S.doc, []);
+    sr.set = new Set(sr.list.map(pk));
+  }
+  if (sr.cur && !sr.set.has(sr.cur)) { sr.cur = null; sr.idx = -1; }
+  updateSearchUI();
+}
+function updateSearchUI() {
+  const sr = S.search;
+  $('#searchBox').classList.toggle('bad', sr.bad);
+  $('#sCase').classList.toggle('on', sr.cs); $('#sRe').classList.toggle('on', sr.re);
+  let txt = '';
+  if (sr.q) {
+    if (S.view === 'text') { const n = textMatches().length; txt = n ? `${n}` : '0'; }
+    else txt = sr.list.length ? `${sr.idx >= 0 ? sr.idx + 1 + '/' : ''}${sr.list.length >= 20000 ? '20000+' : sr.list.length}` : '0';
+  }
+  $('#sCount').textContent = txt;
+}
+function textMatches() {
+  const { q, cs, re } = S.search; const t = $('#ta').value;
+  if (!q) return [];
+  const out = [];
+  let r;
+  try { r = re ? new RegExp(q, cs ? 'g' : 'gi') : new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), cs ? 'g' : 'gi'); } catch { return []; }
+  let m; while ((m = r.exec(t)) && out.length < 20000) { if (!m[0].length) { r.lastIndex++; continue; } out.push([m.index, m.index + m[0].length]); }
+  return out;
+}
+function searchStep(dir) {
+  const sr = S.search;
+  if (!sr.q) { $('#sIn').focus(); return; }
+  if (S.view === 'text') {
+    const ms = textMatches(); if (!ms.length) return;
+    const ta = $('#ta'), pos = dir > 0 ? ta.selectionEnd : ta.selectionStart;
+    let m = dir > 0 ? ms.find(x => x[0] >= pos) || ms[0] : [...ms].reverse().find(x => x[1] <= pos) || ms[ms.length - 1];
+    ta.focus(); ta.setSelectionRange(m[0], m[1]);
+    const { line } = posToLC(ta.value, m[0]);
+    ta.scrollTop = Math.max(0, (line - 1) * LH - ta.clientHeight / 2);
+    $('#sCount').textContent = `${ms.indexOf(m) + 1}/${ms.length}`;
+    $('#sIn').focus();
+    return;
+  }
+  if (!sr.list.length) return;
+  sr.idx = (sr.idx + dir + sr.list.length) % sr.list.length;
+  if (dir < 0 && sr.idx < 0) sr.idx = sr.list.length - 1;
+  const p = sr.list[sr.idx]; sr.cur = pk(p);
+  if (S.view === 'table') { setView('tree'); }
+  select(p, { reveal: true, center: true });
+  updateSearchUI();
+}
+const onSearchInput = debounce(() => {
+  S.search.q = $('#sIn').value; S.search.idx = -1; S.search.cur = null;
+  computeSearch();
+  if (S.view === 'tree') renderWindow(true);
+  if (S.view === 'table') renderTable();
+}, 160);
+
+/* =========================================================================
+   Text view
+   ========================================================================= */
+const HL_LIMIT = 300000;
+function fillText() {
+  const ta = $('#ta');
+  ta.value = S.doc === undefined ? '' : serialize(S.doc);
+  S.taVer = S.ver; S.textError = null; S.textSnap = false;
+  ta.scrollTop = 0; ta.scrollLeft = 0; syncScroll();
+  refreshTextDecor();
+}
+function highlight(t) {
+  const re = /("(?:[^"\\\n]|\\.)*"?)(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false)\b|\b(null)\b|(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|([{}[\],:])/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(t))) {
+    out += esc(t.slice(last, m.index));
+    if (m[1] !== undefined) out += m[2] !== undefined ? `<span class="h-k">${esc(m[1])}</span><span class="h-p">${esc(m[2])}</span>` : `<span class="h-s">${esc(m[1])}</span>`;
+    else if (m[3]) out += `<span class="h-n">${m[3]}</span>`;
+    else if (m[4]) out += `<span class="h-b">${m[4]}</span>`;
+    else if (m[5]) out += `<span class="h-z">${m[5]}</span>`;
+    else if (m[6]) out += `<span class="h-c">${esc(m[6])}</span>`;
+    else out += `<span class="h-p">${esc(m[7])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + esc(t.slice(last)) + '\n ';
+}
+let lastLines = -1;
+function refreshTextDecor() {
+  const ta = $('#ta'), t = ta.value;
+  const plain = t.length > HL_LIMIT;
+  ta.classList.toggle('plain', plain);
+  $('#hl').innerHTML = plain ? '' : highlight(t);
+  let lines = 1; for (let j = t.indexOf('\n'); j !== -1; j = t.indexOf('\n', j + 1)) lines++;
+  if (lines !== lastLines) {
+    lastLines = lines;
+    let s = ''; for (let n = 1; n <= lines; n++) s += n + '\n';
+    $('#gutPre').textContent = s;
+  }
+  showTextError();
+}
+function showTextError() {
+  const el = $('#tErr'), band = $('#errBand'), ta = $('#ta');
+  $('#tRepair').hidden = !S.textError;
+  if (S.textError) {
+    const { line, col } = posToLC(ta.value, S.textError.pos);
+    el.className = 'terr bad';
+    el.innerHTML = `<span>✕ Line ${line}, column ${col}: ${esc(S.textError.msg)}</span><a id="tGo">Go to error</a>`;
+    $('#tGo').onclick = () => goToPos(S.textError.pos);
+    band.style.display = 'block'; band.style.top = (8 + (line - 1) * LH) + 'px';
+  } else {
+    el.className = 'terr' + (ta.value.trim() ? ' good' : '');
+    el.textContent = ta.value.trim() ? '✓ Valid JSON' : '';
+    band.style.display = 'none';
+  }
+  updateStatus();
+}
+function goToPos(pos) {
+  const ta = $('#ta'); ta.focus();
+  ta.setSelectionRange(pos, Math.min(pos + 1, ta.value.length));
+  const { line } = posToLC(ta.value, pos);
+  ta.scrollTop = Math.max(0, (line - 1) * LH - ta.clientHeight / 2);
+  syncScroll();
+}
+function syncScroll() {
+  const ta = $('#ta');
+  $('#layer').style.transform = `translate(${-ta.scrollLeft}px,${-ta.scrollTop}px)`;
+  $('#gutPre').style.transform = `translateY(${-ta.scrollTop}px)`;
+}
+const decorLater = debounce(refreshTextDecor, 60);
+const parseLater = debounce(() => syncFromText(), 250);
+function onTextInput(now) {
+  if ($('#ta').value.length <= HL_LIMIT) refreshTextDecor(); else decorLater();
+  if (now === true) syncFromText(); else parseLater();
+}
+function syncFromText() {
+  const t = $('#ta').value;
+  if (!t.trim()) { S.textError = null; showTextError(); return; }
+  const r = parseText(t);
+  if (r.ok) {
+    S.textError = null;
+    if (JSON.stringify(r.value) !== snapshot()) {
+      if (!S.textSnap) { pushUndo(); S.textSnap = true; }
+      const wasEmpty = S.doc === undefined;
+      S.doc = r.value;
+      if (wasEmpty) defaultExpand();
+      afterDocChange({ fromText: true });
+    }
+  } else S.textError = r.error;
+  showTextError(); updateSearchUI();
+}
+function repairText() {
+  const ta = $('#ta');
+  let v;
+  try { v = parseJSON(ta.value, true); }
+  catch (e) {
+    const jl = tryJSONL(ta.value);
+    if (jl) v = jl;
+    else { S.textError = { msg: e.message, pos: e.pos ?? 0 }; showTextError(); toast('Could not repair automatically — see the highlighted line', 'err'); return; }
+  }
+  if (!S.textSnap && S.doc !== undefined) { pushUndo(); S.textSnap = true; }
+  const wasEmpty = S.doc === undefined;
+  S.doc = v; if (wasEmpty) defaultExpand();
+  S.textError = null;
+  afterDocChange();
+  fillText();
+  toast('Repaired: fixed comments, quotes, trailing/missing commas and similar issues');
+}
+
+/* =========================================================================
+   Table view
+   ========================================================================= */
+function tableTarget() {
+  let p = S.tablePath;
+  let v = getAt(p);
+  while (p.length && !isCont(v)) { p = p.slice(0, -1); v = getAt(p); }
+  if (v === undefined) { p = []; v = S.doc; }
+  S.tablePath = p;
+  return [p, v];
+}
+function pickTablePath() {
+  let p = S.sel.slice(), v = getAt(p);
+  while (p.length && !isCont(v)) { p = p.slice(0, -1); v = getAt(p); }
+  if (p.length && isCont(v) && !Array.isArray(v) && Array.isArray(getAt(p.slice(0, -1)))) p = p.slice(0, -1);
+  S.tablePath = p; S.tableSort = null; S.tableLimit = 500;
+}
+function cellHTML(x) {
+  if (x === undefined) return '<span class="miss">—</span>';
+  if (Array.isArray(x)) return `<span class="badge">[${x.length}]</span> <span class="pv">${esc(preview(x, 60))}</span>`;
+  if (isCont(x)) return `<span class="badge">{${Object.keys(x).length}}</span> <span class="pv">${esc(preview(x, 60))}</span>`;
+  const t = typeOf(x);
+  const s = t === 'string' ? (x.length > 300 ? x.slice(0, 300) + '…' : x) : String(x);
+  return `<span class="t-${t}">${esc(s)}</span>`;
+}
+let TROWS = [], TCOLS = [];
+function renderTable() {
+  const el = $('#tableView');
+  if (S.doc === undefined) { el.innerHTML = ''; return; }
+  const [tp, v] = tableTarget();
+  let crumbs = '';
+  for (let i = 0; i <= tp.length; i++) {
+    const label = i === 0 ? '$' : typeof tp[i - 1] === 'number' ? `[${tp[i - 1]}]` : tp[i - 1];
+    crumbs += i === tp.length ? `<span class="last">${esc(label)}</span>` : `<button data-crumb="${i}">${esc(label)}</button><span class="sep">›</span>`;
+  }
+  if (!isCont(v)) { el.innerHTML = `<div class="tbar"><div class="crumbs">${crumbs}</div></div><div class="notice">The document root is a single ${typeOf(v)} value — nothing to tabulate.</div>`; return; }
+  let ents = entriesOf(v);
+  const isArr = Array.isArray(v);
+  const objRows = ents.filter(([, x]) => isCont(x) && !Array.isArray(x));
+  const cols = [], seen = new Set();
+  for (const [, x] of objRows) { for (const c of Object.keys(x)) if (!seen.has(c)) { seen.add(c); cols.push(c); } if (cols.length > 300) break; }
+  const hasOther = ents.length > objRows.length;
+  TCOLS = cols.map(c => ({ key: c, label: c }));
+  if (hasOther || !cols.length) TCOLS.push({ key: null, label: objRows.length ? '(value)' : 'value' });
+  if (S.tableSort) {
+    const { col, dir } = S.tableSort;
+    const get = ([k, x]) => col === '#' ? k : col === null ? (isCont(x) && !Array.isArray(x) && objRows.length ? undefined : x) : (isCont(x) && !Array.isArray(x) ? x[col] : undefined);
+    ents = ents.slice().sort((a, b) => { const r = cmpVals(get(a), get(b)); return dir * r || cmpVals(a[0], b[0]); });
+  }
+  TROWS = ents.slice(0, S.tableLimit).map(e => e[0]);
+  const test = makeTester();
+  const arrow = c => S.tableSort && S.tableSort.col === c ? `<span class="ar">${S.tableSort.dir > 0 ? '▲' : '▼'}</span>` : '';
+  let h = `<div class="tbar"><div class="crumbs">${crumbs}</div><span style="color:var(--muted)">· ${plural(ents.length, isArr ? 'item' : 'key')}${cols.length ? ' · ' + plural(cols.length, 'column') : ''}</span>`
+    + `<span class="spacer"></span><span style="color:var(--muted);font-size:12px" class="hide-sm">Double-click a cell to edit · click {…} to drill in</span></div>`;
+  h += '<div class="tscroll"><table class="grid"><thead><tr>';
+  h += `<th class="rk" data-sort="#">${isArr ? '#' : 'key'}${arrow('#')}</th>`;
+  TCOLS.forEach((c, ci) => { h += `<th data-sort="${ci}">${esc(c.label)}${arrow(c.key)}</th>`; });
+  h += '</tr></thead><tbody>';
+  const selK = S.selKey;
+  TROWS.forEach((rk, ri) => {
+    const x = v[rk];
+    h += `<tr><td class="rk${pk(tp.concat(rk)) === selK ? ' sel' : ''}" data-ri="${ri}">${esc(rk)}</td>`;
+    TCOLS.forEach((c, ci) => {
+      let val, cellPath;
+      if (c.key === null) { const isObj = isCont(x) && !Array.isArray(x) && objRows.length; val = isObj ? undefined : x; cellPath = tp.concat(rk); }
+      else { val = isCont(x) && !Array.isArray(x) && hasOwn(x, c.key) ? x[c.key] : undefined; cellPath = tp.concat(rk, c.key); }
+      const cls = [];
+      if (isCont(val)) cls.push('cont');
+      if (pk(cellPath) === selK) cls.push('sel');
+      if (test && val !== undefined && !isCont(val) && test(val === null ? 'null' : String(val))) cls.push('hit');
+      h += `<td class="${cls.join(' ')}" data-ri="${ri}" data-ci="${ci}">${cellHTML(val)}</td>`;
+    });
+    h += '</tr>';
+  });
+  h += '</tbody></table>';
+  if (ents.length > S.tableLimit) h += `<div class="tmore"><button class="btn sm" id="tMore">Show ${Math.min(500, ents.length - S.tableLimit)} more (${(ents.length - S.tableLimit).toLocaleString()} hidden)</button></div>`;
+  if (!ents.length) h += `<div class="notice">Empty ${typeOf(v)}</div>`;
+  h += '</div>';
+  const sc = el.querySelector('.tscroll'); const st = sc ? [sc.scrollTop, sc.scrollLeft] : null;
+  el.innerHTML = h;
+  if (st && el.dataset.for === pk(tp)) { const n = el.querySelector('.tscroll'); n.scrollTop = st[0]; n.scrollLeft = st[1]; }
+  el.dataset.for = pk(tp);
+}
+function tableCellInfo(td) {
+  const [tp, v] = tableTarget();
+  const rk = TROWS[+td.dataset.ri];
+  if (td.dataset.ci === undefined) return { path: tp.concat(rk), exists: true, rowKey: true };
+  const c = TCOLS[+td.dataset.ci], x = v[rk];
+  if (c.key === null) return { path: tp.concat(rk), exists: true, value: x };
+  const isObj = isCont(x) && !Array.isArray(x);
+  return { path: tp.concat(rk, c.key), exists: isObj && hasOwn(x, c.key), canAdd: isObj, value: isObj ? x[c.key] : undefined };
+}
+function editTableCell(td) {
+  const info = tableCellInfo(td);
+  if (info.rowKey) return;
+  if (!info.exists && !info.canAdd) return;
+  if (info.exists && isCont(info.value)) return;
+  if (typeof info.value === 'string' && info.value.includes('\n')) { select(info.path); openSide('ins'); $('#insEd')?.focus(); return; }
+  const inp = document.createElement('input');
+  inp.value = info.exists ? (typeof info.value === 'string' ? info.value : String(info.value)) : '';
+  inp.spellcheck = false;
+  td.innerHTML = ''; td.append(inp); inp.focus(); inp.select();
+  let done = false;
+  const finish = commit => {
+    if (done) return; done = true;
+    if (commit) {
+      const nv = parseInput(inp.value, info.exists ? typeOf(info.value) : null);
+      if (!info.exists || nv !== info.value) { mutate(() => setAt(info.path, nv)); S.sel = info.path; S.selKey = pk(info.path); renderTable(); renderInspector(); updateStatus(); return; }
+    }
+    renderTable();
+  };
+  inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') finish(true); else if (e.key === 'Escape') finish(false); });
+  inp.addEventListener('blur', () => finish(true));
+}
+
+/* =========================================================================
+   Inspector
+   ========================================================================= */
+function renderInspector() {
+  const el = $('#tabIns');
+  if (S.doc === undefined) { el.innerHTML = '<div class="notice">No document loaded.</div>'; return; }
+  const v = getAt(S.sel), t = typeOf(v), path = S.sel;
+  let meta = `<span><b>${t}</b></span>`;
+  if (t === 'array') meta += `<span>· ${plural(v.length, 'item')}</span>`;
+  else if (t === 'object') meta += `<span>· ${plural(Object.keys(v).length, 'key')}</span>`;
+  else if (t === 'string') meta += `<span>· ${plural(v.length, 'char')}</span>${detectFormat(v) ? `<span>· looks like ${detectFormat(v)}</span>` : ''}`;
+  meta += `<span>· depth ${path.length}</span>`;
+  const isStr = t === 'string';
+  const rawLen = isStr ? v.length : JSON.stringify(v).length;
+  const tooBig = rawLen > 150000 && !S.insForce;
+  S.insForce = false;
+  const json = tooBig ? '' : isStr ? v : serialize(v, S.indent || 2);
+  el.innerHTML = `
+    <div class="sec"><div class="lbl">Path</div>
+      <div class="pathbox"><code id="insPath">${esc(pathStr(path))}</code><button class="ib" style="height:24px" id="insCopyPath" title="Copy path">${I.copy}</button></div></div>
+    <div class="sec"><div class="meta">${meta}</div></div>
+    <div class="sec"><div class="lbl">Type
+      <select class="sel" id="insType">
+        ${['string', 'number', 'boolean', 'null', 'object', 'array'].map(x => `<option value="${x}"${x === t ? ' selected' : ''}>${x}</option>`).join('')}
+      </select></div></div>
+    <div class="sec"><div class="lbl">${isStr ? 'Text (raw, unescaped)' : 'Value (JSON)'}</div>
+      ${tooBig ? `<div class="msg">This node is large (${fmtBytes(rawLen)}). <button class="btn sm" id="insLoad">Load into editor</button> or use the Text view.</div>` : `<textarea class="insed${isStr ? ' wrap' : ''}" id="insEd" spellcheck="false"></textarea>`}
+      <div class="msg" id="insMsg"></div>
+      <div class="btnrow">
+        <button class="btn primary sm" id="insApply" disabled>Apply <kbd style="background:transparent;color:inherit;border-color:rgba(255,255,255,.4)">Ctrl+↵</kbd></button>
+        <button class="btn sm" id="insRevert" disabled>Revert</button>
+        <span class="spacer"></span>
+        <button class="btn sm" id="insCopy">${I.copy} Copy</button>
+      </div></div>
+    <div class="sec"><div class="lbl">Actions</div>
+      <div class="btnrow">
+        ${isCont(v) ? `<button class="btn sm" data-ia="add">${I.plus} Add ${t === 'array' ? 'item' : 'property'}</button>` : ''}
+        ${path.length ? `<button class="btn sm" data-ia="dup">Duplicate</button><button class="btn sm" data-ia="up">${I.up}</button><button class="btn sm" data-ia="down">${I.down}</button>` : ''}
+        ${isCont(v) ? `<button class="btn sm" data-ia="table">Open as table</button>` : ''}
+        ${t === 'object' ? `<button class="btn sm" data-ia="sort">Sort keys</button>` : ''}
+        ${path.length ? `<button class="btn sm danger" data-ia="del">${I.trash} Delete</button>` : ''}
+      </div></div>`;
+  const ed = $('#insEd');
+  if (ed) {
+    ed.value = json;
+    const apply = $('#insApply'), revert = $('#insRevert'), msg = $('#insMsg');
+    ed.addEventListener('input', () => {
+      const changed = ed.value !== json;
+      apply.disabled = !changed; revert.disabled = !changed;
+      if (isStr || !changed) { msg.className = 'msg'; msg.textContent = changed ? 'Modified — press Apply to save' : ''; return; }
+      const r = parseText(ed.value);
+      if (r.ok) { msg.className = 'msg good'; msg.textContent = '✓ Valid — press Apply'; apply.disabled = false; }
+      else { const { line, col } = posToLC(ed.value, r.error.pos); msg.className = 'msg bad'; msg.textContent = `Line ${line}, col ${col}: ${r.error.msg}`; apply.disabled = true; }
+    });
+    ed.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); if (!apply.disabled) apply.click(); }
+      if (e.key === 'Tab' && !isStr) { e.preventDefault(); document.execCommand('insertText', false, '  '); }
+    });
+    apply.onclick = () => {
+      let nv;
+      if (isStr) nv = ed.value;
+      else { const r = parseText(ed.value); if (!r.ok) return; nv = r.value; }
+      const p = S.sel;
+      mutate(() => { dropSub(p, true); setAt(p, nv); });
+      toast('Applied');
+    };
+    revert.onclick = () => { ed.value = json; ed.dispatchEvent(new Event('input')); };
+  }
+  if ($('#insLoad')) $('#insLoad').onclick = () => { S.insForce = true; renderInspector(); };
+  if (tooBig) { $('#insApply').disabled = true; }
+  $('#insCopyPath').onclick = () => copyText(pathStr(path), 'Path copied');
+  $('#insCopy').onclick = () => copyText(isStr ? v : serialize(v, S.indent || 2), 'Value copied');
+  $('#insType').onchange = e => actConvert(path, e.target.value);
+  $$('[data-ia]', el).forEach(b => b.onclick = () => {
+    const a = b.dataset.ia;
+    if (a === 'add') actAdd(path);
+    else if (a === 'dup') actDuplicate(path);
+    else if (a === 'up') actMove(path, -1);
+    else if (a === 'down') actMove(path, 1);
+    else if (a === 'del') actDelete(path);
+    else if (a === 'sort') { mutate(() => { dropSub(path, true); setAt(path, sortKeysDeep(getAt(path))); }); }
+    else if (a === 'table') { S.tablePath = path; S.tableSort = null; S.tableLimit = 500; setView('table', true); }
+  });
+}
+
+/* =========================================================================
+   Query panel
+   ========================================================================= */
+const EXAMPLES = ['$.*', '$..name', '$.team[*].email', '$.team[?(@.hours >= 36)]', "$..[?(@.role == 'Engineer' && @.active)]", '$.team[?(@.skills.length > 2)].name', '$..[?(@.name =~ /^a/i)]', '$.milestones[-1:]'];
+function runQuery() {
+  const q = $('#qIn').value, msg = $('#qMsg'), res = $('#qRes');
+  S.queryRes = [];
+  if (S.doc === undefined) { msg.className = 'msg bad'; msg.textContent = 'Load a document first'; res.innerHTML = ''; return; }
+  try { S.queryRes = runPath(S.doc, q).filter(n => !n.virtual || true); }
+  catch (e) { msg.className = 'msg bad'; msg.textContent = e.message; res.innerHTML = ''; $('#qActs').hidden = true; return; }
+  store.set('jwb.query', q);
+  const n = S.queryRes.length;
+  msg.className = 'msg' + (n ? ' good' : ''); msg.textContent = n ? `${n.toLocaleString()} match${n === 1 ? '' : 'es'}` + (n > 500 ? ' (showing first 500)' : '') : 'No matches';
+  $('#qActs').hidden = !n;
+  res.innerHTML = S.queryRes.slice(0, 500).map((r, i) => {
+    const v = r.value, t = typeOf(v);
+    const pv = isCont(v) ? preview(v, 120) : t === 'string' ? JSON.stringify(v.length > 160 ? v.slice(0, 160) + '…' : v) : String(v);
+    return `<button class="qitem" data-qi="${i}"><div class="qp">${esc(pathStr(r.path))}</div><div class="qv t-${isCont(v) ? 'x' : t}">${esc(pv)}</div></button>`;
+  }).join('');
+}
+function queryRealPaths() { return S.queryRes.filter(r => !r.virtual && getAt(r.path) !== undefined).map(r => r.path); }
+
+/* =========================================================================
+   Menus, modals, toasts, clipboard
+   ========================================================================= */
+let menuEl = null;
+function closeMenu() { if (menuEl) { menuEl.remove(); menuEl = null; document.removeEventListener('mousedown', menuOutside, true); } }
+function menuOutside(e) { if (menuEl && !menuEl.contains(e.target)) closeMenu(); }
+function openMenu(items, x, y) {
+  closeMenu();
+  const m = document.createElement('div'); m.className = 'menu'; m.setAttribute('role', 'menu');
+  for (const it of items) {
+    if (!it) continue;
+    if (it === '-') { m.insertAdjacentHTML('beforeend', '<div class="msep"></div>'); continue; }
+    if (it.head) { m.insertAdjacentHTML('beforeend', `<div class="mhead">${esc(it.head)}</div>`); continue; }
+    if (it.chips) {
+      const row = document.createElement('div'); row.className = 'mchips';
+      for (const c of it.chips) { const b = document.createElement('button'); b.textContent = c.label; if (c.cur) b.className = 'cur'; b.onclick = () => { closeMenu(); c.run(); }; row.append(b); }
+      m.append(row); continue;
+    }
+    const b = document.createElement('button'); b.className = 'mi' + (it.danger ? ' danger' : ''); b.disabled = !!it.disabled; b.setAttribute('role', 'menuitem');
+    b.innerHTML = `<span>${esc(it.label)}</span>${it.kbd ? `<kbd>${esc(it.kbd)}</kbd>` : ''}`;
+    b.onclick = () => { closeMenu(); it.run(); };
+    m.append(b);
+  }
+  document.body.append(m);
+  const r = m.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(x, innerWidth - r.width - 8)) + 'px';
+  m.style.top = Math.max(8, Math.min(y, innerHeight - r.height - 8)) + 'px';
+  menuEl = m;
+  setTimeout(() => document.addEventListener('mousedown', menuOutside, true));
+  m.addEventListener('keydown', e => {
+    const bs = $$('.mi:not(:disabled)', m); const i = bs.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); bs[(i + 1) % bs.length]?.focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); bs[(i - 1 + bs.length) % bs.length]?.focus(); }
+    else if (e.key === 'Escape') { closeMenu(); }
+  });
+  m.querySelector('.mi:not(:disabled)')?.focus({ preventScroll: true });
+}
+function nodeMenuItems(path) {
+  const v = getAt(path), t = typeOf(v), cont = isCont(v), isIdx = typeof path[path.length - 1] === 'number';
+  return [
+    !cont && { label: 'Edit value', kbd: 'Enter', run: () => startEdit(path, 'value') },
+    path.length && !isIdx && { label: 'Rename key', kbd: 'F2', run: () => startEdit(path, 'key') },
+    cont && { label: t === 'array' ? 'Add item' : 'Add property', kbd: 'Shift+Ins', run: () => actAdd(path) },
+    path.length && { label: 'Insert after', kbd: 'Ins', run: () => actInsertAfter(path) },
+    path.length && { label: 'Duplicate', kbd: 'Ctrl+D', run: () => actDuplicate(path) },
+    path.length && { label: 'Move up', kbd: 'Alt+↑', run: () => actMove(path, -1) },
+    path.length && { label: 'Move down', kbd: 'Alt+↓', run: () => actMove(path, 1) },
+    '-',
+    { head: 'Convert to' },
+    { chips: ['string', 'number', 'boolean', 'null', 'object', 'array'].map(x => ({ label: x, cur: x === t, run: () => actConvert(path, x) })) },
+    '-',
+    cont && { label: 'Expand all children', run: () => expandAll(path) },
+    cont && { label: 'Collapse all children', run: () => collapseAll(path) },
+    t === 'object' && { label: 'Sort keys A→Z (deep)', run: () => mutate(() => { dropSub(path, true); setAt(path, sortKeysDeep(v)); }) },
+    cont && { label: 'Open as table', run: () => { S.tablePath = path; S.tableSort = null; setView('table', true); } },
+    { label: 'Copy value', kbd: 'Ctrl+C', run: () => copyText(serialize(v, S.indent || 2), 'Value copied') },
+    { label: 'Copy path', run: () => copyText(pathStr(path), 'Path copied') },
+    path.length && !isIdx && { label: 'Copy key', run: () => copyText(String(path[path.length - 1]), 'Key copied') },
+    path.length && '-',
+    path.length && { label: 'Delete', kbd: 'Del', danger: true, run: () => actDelete(path) }
+  ];
+}
+function toolsMenu() {
+  const r = $('#bTools').getBoundingClientRect();
+  const has = S.doc !== undefined, p = S.sel, v = getAt(p), tgt = p.length ? pathStr(p) : 'whole document';
+  openMenu([
+    { head: `Transform · ${tgt.length > 30 ? tgt.slice(0, 29) + '…' : tgt}` },
+    { label: 'Sort keys A→Z (deep)', disabled: !isCont(v), run: () => mutate(() => { dropSub(p, true); setAt(p, sortKeysDeep(v)); }) },
+    { label: 'Sort array by field…', disabled: !Array.isArray(v), run: toolSortArray },
+    { label: 'Remove null values (deep)', disabled: !isCont(v), run: () => mutate(() => { dropSub(p, true); setAt(p, removeNulls(v)); }) },
+    { label: 'Parse embedded JSON strings', disabled: !has, run: () => { const nv = parseEmbedded(v); if (JSON.stringify(nv) === JSON.stringify(v)) toast('No embedded JSON strings found'); else { mutate(() => setAt(p, nv)); toast('Expanded embedded JSON'); } } },
+    { label: 'Flatten to dotted keys', disabled: !isCont(v), run: () => mutate(() => { dropSub(p, true); setAt(p, flatten(v)); }) },
+    { label: 'Unflatten dotted keys', disabled: !(isCont(v) && !Array.isArray(v)), run: () => mutate(() => { dropSub(p, true); setAt(p, unflatten(v)); }) },
+    '-',
+    { head: 'Generate & export' },
+    { label: 'Generate JSON Schema', disabled: !has, run: showSchema },
+    { label: 'Export array as CSV', disabled: !Array.isArray(v), run: () => { download(toCSV(v), S.fileName.replace(/\.\w+$/, '') + (p.length ? '-' + String(p[p.length - 1]) : '') + '.csv', 'text/csv'); toast('CSV exported'); } },
+    { label: 'Copy document (minified)', disabled: !has, run: () => copyText(JSON.stringify(S.doc), 'Minified JSON copied') },
+    { label: 'Copy as escaped string', disabled: !has, run: () => copyText(JSON.stringify(JSON.stringify(S.doc)), 'Escaped string copied') },
+    { label: 'Download', kbd: 'Ctrl+Shift+S', disabled: !has, run: () => save(true) },
+    '-',
+    { head: 'View' },
+    { label: 'Expand all', disabled: !has, run: () => { setView('tree'); expandAll([]); } },
+    { label: 'Collapse all', disabled: !has, run: () => { setView('tree'); collapseAll([]); } },
+    { label: 'Keyboard shortcuts', kbd: '?', run: showHelp }
+  ], r.left, r.bottom + 4);
+}
+function newMenu() {
+  const r = $('#bNew').getBoundingClientRect();
+  openMenu([
+    { label: 'New empty object {}', run: () => newDoc({}) },
+    { label: 'New empty array []', run: () => newDoc([]) },
+    { label: 'Paste / type JSON', run: async () => { if (await confirmDiscard()) { setDoc(undefined, 'untitled.json'); setView('text', true); $('#ta').focus(); } } },
+    '-',
+    { label: 'Open file…', kbd: 'Ctrl+O', run: openFile },
+    { label: 'Load from URL…', run: loadURL },
+    { label: 'Load sample data', run: async () => { if (await confirmDiscard()) loadSample(); } }
+  ], r.left, r.bottom + 4);
+}
+async function toolSortArray() {
+  const p = S.sel, v = getAt(p);
+  const f = await ask({ title: 'Sort array', label: 'Field to sort by (dot paths allowed, e.g. address.city). Leave blank to sort by the items themselves. Prefix with - for descending.', placeholder: 'name or -price', ok: 'Sort' });
+  if (f === null) return;
+  let desc = false, field = f.trim();
+  if (field[0] === '-') { desc = true; field = field.slice(1).trim(); }
+  mutate(() => { dropSub(p, true); v.sort((a, b) => (desc ? -1 : 1) * cmpVals(field ? getField(a, field) : a, field ? getField(b, field) : b)); });
+  toast('Array sorted');
+}
+function showSchema() {
+  const target = getAt(S.sel);
+  const schema = Object.assign({ $schema: 'https://json-schema.org/draft/2020-12/schema' }, inferSchema(target));
+  const text = JSON.stringify(schema, null, 2);
+  modal({
+    title: 'Inferred JSON Schema', wide: true,
+    html: `<p>Generated from ${esc(S.sel.length ? pathStr(S.sel) : 'the whole document')}. Review before relying on it — required fields and types are inferred from the sample data.</p><textarea readonly spellcheck="false">${esc(text)}</textarea>`,
+    buttons: [
+      { label: 'Copy', run: () => copyText(text, 'Schema copied') },
+      { label: 'Download', run: () => download(text, S.fileName.replace(/\.\w+$/, '') + '.schema.json', 'application/json') },
+      { label: 'Close', primary: true, run: c => c() }
+    ]
+  });
+}
+function showHelp() {
+  const rows = (arr) => arr.map(([k, d]) => `<tr><td>${k.split(' / ').map(x => `<kbd>${x}</kbd>`).join(' ')}</td><td>${d}</td></tr>`).join('');
+  modal({
+    title: 'Keyboard shortcuts', wide: true,
+    html: `<table class="keys">
+      <tr><td colspan="2"><h3>General</h3></td></tr>
+      ${rows([['Ctrl+O', 'Open file'], ['Ctrl+S', 'Save (writes back to the file where the browser supports it)'], ['Ctrl+Shift+S', 'Save as / download'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['Ctrl+F', 'Search keys and values'], ['Ctrl+1 / Ctrl+2 / Ctrl+3', 'Tree / Text / Table view'], ['Ctrl+B', 'Toggle side panel'], ['Ctrl+Shift+F', 'Format text view']])}
+      <tr><td colspan="2"><h3>Tree</h3></td></tr>
+      ${rows([['↑ / ↓', 'Move selection'], ['← / →', 'Collapse / expand (or go to parent / first child)'], ['Enter', 'Edit value (or toggle a container)'], ['F2', 'Rename key'], ['Ins', 'Insert a new item after the selection'], ['Shift+Ins', 'Add a child to the selected object/array'], ['Ctrl+D', 'Duplicate'], ['Alt+↑ / Alt+↓', 'Move item up / down'], ['Del', 'Delete'], ['Ctrl+C', 'Copy selected value as JSON'], ['Ctrl+V', 'Paste JSON as a child (container) or after the selection'], ['*', 'Expand everything below the selection'], ['Home / End', 'First / last row']])}
+      <tr><td colspan="2"><h3>Editing</h3></td></tr>
+      ${rows([['Enter', 'Commit edit (new keys continue to the value)'], ['Tab', 'From a key, jump to editing its value'], ['Esc', 'Cancel edit'], ['Ctrl+Enter', 'Apply the Inspector editor']])}
+    </table>
+    <p style="margin-top:14px">Values typed into non-string fields are parsed as JSON: <code>42</code>, <code>true</code>, <code>null</code>, <code>{"a":1}</code>. Anything that isn't valid JSON becomes a string. Use <b>Convert to</b> (right-click) to change a value's type.</p>`,
+    buttons: [{ label: 'Close', primary: true, run: c => c() }]
+  });
+}
+function modal({ title, html, buttons = [], wide, onOpen }) {
+  const ov = document.createElement('div'); ov.className = 'modal-ov';
+  ov.innerHTML = `<div class="modal${wide ? ' wide' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="mh"><h2>${esc(title)}</h2><button class="ib mclose" title="Close">${I.x}</button></div><div class="mb">${html}</div><div class="mf"></div></div>`;
+  const prevFocus = document.activeElement;
+  let onClose = null;
+  const close = () => { ov.remove(); document.removeEventListener('keydown', onKey, true); onClose && onClose(); prevFocus?.focus?.(); };
+  const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+  document.addEventListener('keydown', onKey, true);
+  ov.addEventListener('mousedown', e => { if (e.target === ov) close(); });
+  ov.querySelector('.mclose').onclick = close;
+  const f = ov.querySelector('.mf');
+  for (const b of buttons) { const el = document.createElement('button'); el.className = 'btn' + (b.primary ? ' primary' : '') + (b.danger ? ' danger' : ''); el.textContent = b.label; el.onclick = () => b.run(close, ov); f.append(el); }
+  document.body.append(ov);
+  const api = { root: ov, close, set onClose(fn) { onClose = fn; } };
+  onOpen && onOpen(api);
+  (ov.querySelector('input,textarea') || ov.querySelector('.mf .primary') || ov.querySelector('.mclose')).focus();
+  return api;
+}
+function ask({ title, label, value = '', placeholder = '', ok = 'OK' }) {
+  return new Promise(res => {
+    let result = null;
+    const m = modal({
+      title, html: `<p>${esc(label)}</p><input class="fi" value="${esc(value)}" placeholder="${esc(placeholder)}" spellcheck="false">`,
+      buttons: [{ label: 'Cancel', run: c => c() }, { label: ok, primary: true, run: (c, root) => { result = root.querySelector('input').value; c(); } }]
+    });
+    m.onClose = () => res(result);
+    const inp = m.root.querySelector('input'); inp.select();
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { result = inp.value; m.close(); } });
+  });
+}
+function confirmDlg(title, text, ok = 'OK', danger = false) {
+  return new Promise(res => {
+    let result = false;
+    const m = modal({ title, html: `<p>${esc(text)}</p>`, buttons: [{ label: 'Cancel', run: c => c() }, { label: ok, primary: !danger, danger, run: c => { result = true; c(); } }] });
+    m.onClose = () => res(result);
+  });
+}
+function toast(msg, kind = '') {
+  const t = document.createElement('div'); t.className = 'toast ' + kind; t.textContent = msg;
+  const box = $('#toasts'); box.append(t);
+  while (box.children.length > 3) box.firstChild.remove();
+  setTimeout(() => t.remove(), kind === 'err' ? 4200 : 2400);
+}
+async function copyText(text, msg = 'Copied') {
+  try { await navigator.clipboard.writeText(text); toast(msg); }
+  catch {
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.append(ta); ta.select();
+    try { document.execCommand('copy'); toast(msg); } catch { toast('Copy failed', 'err'); }
+    ta.remove();
+  }
+}
+
+/* =========================================================================
+   View switching, panel, theme
+   ========================================================================= */
+async function setView(v, force) {
+  if (v === S.view && !force) return;
+  if (S.view === 'text' && v !== 'text') {
+    if (S.textError && S.doc !== undefined) {
+      const ok = await confirmDlg('Text has errors', 'The text view contains invalid JSON. Switching views discards the text edits since the last valid state.', 'Discard edits', true);
+      if (!ok) return;
+      S.textError = null; S.taVer = -1;
+    } else if (S.textError && S.doc === undefined) { toast('Fix the JSON errors first (or use Repair)', 'err'); return; }
+    S.textSnap = false;
+  }
+  if (S.editing) commitEdit();
+  if (v === 'table' && S.view !== 'table' && !force) pickTablePath();
+  S.view = v;
+  store.set('jwb.view', v);
+  renderView();
+  updateSearchUI(); updateStatus();
+  if (v === 'tree') { const i = ROWIDX.get(S.selKey); if (i !== undefined) scrollToIndex(i, true); renderWindow(true); treeScroll().focus({ preventScroll: true }); }
+  if (v === 'text') { syncScroll(); }
+}
+function openSide(tab) {
+  S.sideOpen = true; $('#side').hidden = false; $('#bPanel').classList.add('on');
+  if (tab) { S.tab = tab; $$('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab)); $('#tabIns').hidden = tab !== 'ins'; $('#tabQuery').hidden = tab !== 'query'; }
+  store.set('jwb.side', '1');
+  requestAnimationFrame(() => renderWindow(true));
+}
+function toggleSide() {
+  S.sideOpen = !S.sideOpen; $('#side').hidden = !S.sideOpen; $('#bPanel').classList.toggle('on', S.sideOpen);
+  store.set('jwb.side', S.sideOpen ? '1' : '0');
+  requestAnimationFrame(() => renderWindow(true));
+}
+function applyTheme(t) {
+  if (t) document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+}
+function toggleTheme() {
+  const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  applyTheme(next); store.set('jwb.theme', next);
+}
+
+/* =========================================================================
+   Sample
+   ========================================================================= */
+const SAMPLE = {
+  project: 'Aurora', version: '2.4.1', active: true, budget: 125000.5, owner: null,
+  createdAt: '2026-03-14T09:30:00Z', homepage: 'https://example.com/aurora',
+  theme: { primary: '#2f6fde', accent: '#e8833a', dark: false },
+  tags: ['web', 'analytics', 'beta'],
+  team: [
+    { id: 1, name: 'Ada Park', role: 'Lead', email: 'ada@example.com', skills: ['rust', 'design'], active: true, hours: 38.5 },
+    { id: 2, name: 'Ben Ortiz', role: 'Engineer', email: 'ben@example.com', skills: ['typescript'], active: true, hours: 40 },
+    { id: 3, name: 'Chen Liu', role: 'Designer', email: 'chen@example.com', skills: ['figma', 'css'], active: false, hours: 12 },
+    { id: 4, name: 'Dara Okafor', role: 'Engineer', email: 'dara@example.com', skills: ['go', 'sql', 'k8s'], active: true, hours: 36, manager: 1 }
+  ],
+  milestones: [
+    { title: 'Alpha', due: '2026-05-01', done: true },
+    { title: 'Beta', due: '2026-08-15', done: true },
+    { title: 'GA', due: '2026-12-01', done: false, notes: 'Pending security review.\nTarget: first week of December.' }
+  ],
+  config: '{"retries":3,"timeout":30,"endpoints":["eu","us"]}'
+};
+function loadSample() { setDoc(clone(SAMPLE), 'sample.json'); S.dirty = false; updateTitle(); toast('Sample loaded — try right-clicking a row, or the Query tab'); }
+
+/* =========================================================================
+   Event wiring
+   ========================================================================= */
+function inField(el = document.activeElement) { return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable); }
+function rowFromEvent(e) { const r = e.target.closest('.row'); return r ? ROWS[+r.dataset.i] : null; }
+
+function wire() {
+  $$('[data-icon]').forEach(b => b.insertAdjacentHTML('afterbegin', I[b.dataset.icon] || ''));
+  // toolbar
+  $('#bNew').onclick = newMenu;
+  $('#bOpen').onclick = openFile;
+  $('#bSave').onclick = () => save(false);
+  $('#bSave').oncontextmenu = e => { e.preventDefault(); save(true); };
+  $('#bUndo').onclick = undo; $('#bRedo').onclick = redo;
+  $('#bTools').onclick = toolsMenu;
+  $('#bPanel').onclick = toggleSide;
+  $('#bTheme').onclick = toggleTheme;
+  $('#bHelp').onclick = showHelp;
+  $('#fname').onclick = async () => {
+    const n = await ask({ title: 'Rename file', label: 'File name used when saving or downloading.', value: S.fileName, ok: 'Rename' });
+    if (n && n.trim()) { S.fileName = n.trim(); S.fileHandle = null; updateTitle(); autosave(); }
+  };
+  $$('#viewSeg button').forEach(b => b.onclick = () => setView(b.dataset.view));
+  $('#fileIn').onchange = e => { readFile(e.target.files[0]); e.target.value = ''; };
+  $$('[data-do]').forEach(b => b.onclick = () => {
+    const d = b.dataset.do;
+    if (d === 'open') openFile();
+    else if (d === 'sample') loadSample();
+    else if (d === 'newObj') newDoc({});
+    else if (d === 'newArr') newDoc([]);
+    else if (d === 'url') loadURL();
+    else if (d === 'paste') { setView('text', true); $('#ta').focus(); }
+  });
+  $('#indentSel').onchange = e => {
+    const v = e.target.value; S.indent = v === 'tab' ? '\t' : +v; store.set('jwb.indent', v);
+    if (S.view === 'text' && !S.textError) fillText();
+    renderInspector();
+  };
+
+  // search
+  $('#sIn').addEventListener('input', onSearchInput);
+  $('#sIn').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); S.search.q = $('#sIn').value; if (S.view !== 'text' && (!S.search.list.length || S.search.q !== S.search.lastQ)) { computeSearch(); S.search.lastQ = S.search.q; } searchStep(e.shiftKey ? -1 : 1); }
+    else if (e.key === 'Escape') { $('#sIn').value = ''; S.search.q = ''; computeSearch(); renderView(); (S.view === 'text' ? $('#ta') : treeScroll()).focus(); }
+  });
+  $('#sNext').onclick = () => searchStep(1);
+  $('#sPrev').onclick = () => searchStep(-1);
+  $('#sCase').onclick = () => { S.search.cs = !S.search.cs; computeSearch(); renderView(); };
+  $('#sRe').onclick = () => { S.search.re = !S.search.re; computeSearch(); renderView(); };
+
+  // tree
+  const ts = treeScroll();
+  ts.addEventListener('scroll', scheduleWindow, { passive: true });
+  new ResizeObserver(() => { if (S.view === 'tree') renderWindow(); }).observe(ts);
+  ts.addEventListener('mousedown', e => {
+    if (e.target.closest('.inl')) return;
+    const r = rowFromEvent(e); if (!r) return;
+    if (e.target.closest('.tog')) { e.preventDefault(); select(r.path, { scroll: false }); toggle(r.path); ts.focus({ preventScroll: true }); return; }
+    if (e.button === 0 && !e.target.closest('.acts')) { select(r.path, { scroll: false }); }
+  });
+  ts.addEventListener('click', e => {
+    const b = e.target.closest('.acts button'); if (!b) return;
+    const r = rowFromEvent(e); if (!r) return;
+    const a = b.dataset.a;
+    if (a === 'add') actAdd(r.path);
+    else if (a === 'dup') actDuplicate(r.path);
+    else if (a === 'del') actDelete(r.path);
+    else if (a === 'menu') { select(r.path, { scroll: false }); const rc = b.getBoundingClientRect(); openMenu(nodeMenuItems(r.path), rc.left - 180, rc.bottom + 2); }
+  });
+  ts.addEventListener('dblclick', e => {
+    if (e.target.closest('.inl,.acts,.tog')) return;
+    const r = rowFromEvent(e); if (!r) return;
+    if (e.target.closest('.k') && r.path.length && typeof r.key === 'string') startEdit(r.path, 'key');
+    else if (r.cont) toggle(r.path);
+    else startEdit(r.path, 'value');
+  });
+  ts.addEventListener('contextmenu', e => {
+    const r = rowFromEvent(e); if (!r || e.target.closest('.inl')) return;
+    e.preventDefault(); select(r.path, { scroll: false });
+    openMenu(nodeMenuItems(r.path), e.clientX, e.clientY);
+  });
+  ts.addEventListener('keydown', treeKeys);
+
+  // text
+  const ta = $('#ta');
+  ta.addEventListener('input', () => onTextInput());
+  ta.addEventListener('scroll', syncScroll, { passive: true });
+  ta.addEventListener('blur', () => { S.textSnap = false; });
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab' && !e.ctrlKey && !e.altKey) {
+      e.preventDefault();
+      const unit = S.indent === '\t' ? '\t' : ' '.repeat(S.indent || 2);
+      if (e.shiftKey) {
+        const s = ta.selectionStart, ls = ta.value.lastIndexOf('\n', s - 1) + 1;
+        const lead = ta.value.slice(ls).match(/^( +|\t)/);
+        if (lead) { const n = Math.min(lead[0].length, unit.length); ta.setSelectionRange(ls, ls + n); document.execCommand('delete'); }
+      } else if (!document.execCommand('insertText', false, unit)) ta.setRangeText(unit, ta.selectionStart, ta.selectionEnd, 'end');
+    } else if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+      // keep indentation
+      const s = ta.selectionStart, ls = ta.value.lastIndexOf('\n', s - 1) + 1;
+      const lead = (ta.value.slice(ls, s).match(/^[ \t]*/) || [''])[0];
+      const prev = ta.value[s - 1], next = ta.value[s];
+      const unit = S.indent === '\t' ? '\t' : ' '.repeat(S.indent || 2);
+      e.preventDefault();
+      let ins = '\n' + lead;
+      if (prev === '{' || prev === '[') { ins += unit; if ((prev === '{' && next === '}') || (prev === '[' && next === ']')) { document.execCommand('insertText', false, ins + '\n' + lead); const p = s + ins.length; ta.setSelectionRange(p, p); return; } }
+      document.execCommand('insertText', false, ins);
+    }
+  });
+  $('#tFormat').onclick = formatText;
+  $('#tMinify').onclick = () => { if (S.textError) return toast('Fix the errors first (or Repair)', 'err'); S.indent = 0; $('#indentSel').value = '0'; store.set('jwb.indent', '0'); fillText(); };
+  $('#tRepair').onclick = repairText;
+  $('#tCopy').onclick = () => copyText($('#ta').value, 'Text copied');
+
+  // table
+  const tv = $('#tableView');
+  tv.addEventListener('click', e => {
+    const cr = e.target.closest('[data-crumb]');
+    if (cr) { S.tablePath = S.tablePath.slice(0, +cr.dataset.crumb); S.tableSort = null; S.tableLimit = 500; renderTable(); return; }
+    if (e.target.id === 'tMore') { S.tableLimit += 500; renderTable(); return; }
+    const th = e.target.closest('th');
+    if (th) {
+      const k = th.dataset.sort === '#' ? '#' : TCOLS[+th.dataset.sort].key;
+      const cur = S.tableSort;
+      S.tableSort = !cur || cur.col !== k ? { col: k, dir: 1 } : cur.dir === 1 ? { col: k, dir: -1 } : null;
+      renderTable(); return;
+    }
+    const td = e.target.closest('td'); if (!td || td.querySelector('input')) return;
+    const info = tableCellInfo(td);
+    const val = info.rowKey ? getAt(info.path) : info.value;
+    if (!info.rowKey && isCont(val)) { S.tablePath = info.path; S.tableSort = null; S.tableLimit = 500; S.sel = info.path; S.selKey = pk(info.path); renderTable(); renderInspector(); updateStatus(); return; }
+    if (info.exists || info.rowKey) { S.sel = info.path; S.selKey = pk(info.path); $$('#tableView td.sel').forEach(x => x.classList.remove('sel')); td.classList.add('sel'); renderInspector(); updateStatus(); }
+  });
+  tv.addEventListener('dblclick', e => {
+    const td = e.target.closest('td'); if (!td || td.querySelector('input')) return;
+    const info = tableCellInfo(td);
+    if (info.rowKey) { setView('tree').then(() => select(info.path, { reveal: true, center: true })); return; }
+    editTableCell(td);
+  });
+  tv.addEventListener('contextmenu', e => {
+    const td = e.target.closest('td'); if (!td) return;
+    const info = tableCellInfo(td); if (!info.exists && !info.rowKey) return;
+    e.preventDefault(); S.sel = info.path; S.selKey = pk(info.path); renderInspector(); updateStatus();
+    openMenu(nodeMenuItems(info.path).filter(it => !(it && (it.label === 'Edit value' || it.label === 'Rename key' || it.label?.startsWith('Expand') || it.label?.startsWith('Collapse')))), e.clientX, e.clientY);
+  });
+
+  // side tabs + query
+  $$('.tabs button').forEach(b => b.onclick = () => openSide(b.dataset.tab));
+  $('#qRun').onclick = runQuery;
+  $('#qIn').addEventListener('keydown', e => { if (e.key === 'Enter') runQuery(); });
+  $('#qEx').innerHTML = EXAMPLES.map(x => `<button class="chip">${esc(x)}</button>`).join('');
+  $('#qEx').onclick = e => { const c = e.target.closest('.chip'); if (c) { $('#qIn').value = c.textContent; runQuery(); } };
+  $('#qRes').onclick = e => {
+    const it = e.target.closest('[data-qi]'); if (!it) return;
+    const r = S.queryRes[+it.dataset.qi];
+    if (r.virtual) { toast('That is a computed value (length)'); return; }
+    if (getAt(r.path) === undefined) { toast('That node no longer exists — re-run the query', 'err'); return; }
+    if (S.view !== 'tree') setView('tree').then(() => select(r.path, { reveal: true, center: true }));
+    else select(r.path, { reveal: true, center: true });
+  };
+  $('#qCopy').onclick = () => copyText(JSON.stringify(S.queryRes.map(r => r.value), null, 2), `Copied ${plural(S.queryRes.length, 'result')}`);
+  $('#qDel').onclick = async () => {
+    const paths = queryRealPaths().filter(p => p.length);
+    if (!paths.length) return;
+    if (!(await confirmDlg('Delete all matches?', `This deletes ${plural(paths.length, 'node')}. You can undo it.`, 'Delete', true))) return;
+    paths.sort((a, b) => { for (let i = 0; i < Math.min(a.length, b.length); i++) { if (a[i] !== b[i]) return cmpVals(b[i], a[i]); } return b.length - a.length; });
+    mutate(() => {
+      for (const p of paths) {
+        const par = getAt(p.slice(0, -1)), k = p[p.length - 1];
+        if (!isCont(par) || getAt(p) === undefined) continue;
+        if (Array.isArray(par)) par.splice(k, 1); else delete par[k];
+      }
+      remapExpanded(p => p);
+    });
+    toast(`Deleted ${plural(paths.length, 'node')}`);
+    runQuery();
+  };
+  $('#qSet').onclick = async () => {
+    const paths = queryRealPaths();
+    if (!paths.length) return;
+    const s = await ask({ title: `Set ${plural(paths.length, 'match')}`, label: 'New value, as JSON (e.g. 0, true, "text", null, {"a":1}). Plain text is stored as a string.', ok: 'Set all' });
+    if (s === null) return;
+    const nv = parseInput(s, null);
+    mutate(() => { for (const p of paths) setAt(p, clone(nv)); });
+    toast(`Updated ${plural(paths.length, 'node')}`);
+    runQuery();
+  };
+
+  // global keys
+  document.addEventListener('keydown', globalKeys);
+  // drag & drop
+  let dragN = 0;
+  addEventListener('dragenter', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')) { dragN++; $('#dropOv').hidden = false; } });
+  addEventListener('dragleave', () => { dragN = Math.max(0, dragN - 1); if (!dragN) $('#dropOv').hidden = true; });
+  addEventListener('dragover', e => e.preventDefault());
+  addEventListener('drop', e => { e.preventDefault(); dragN = 0; $('#dropOv').hidden = true; const f = e.dataTransfer?.files?.[0]; if (f) readFile(f); });
+  // clipboard
+  document.addEventListener('paste', onPaste);
+  document.addEventListener('copy', e => {
+    if (inField() || S.doc === undefined || window.getSelection()?.toString()) return;
+    if (S.view === 'text') return;
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', serialize(getAt(S.sel), S.indent || 2));
+    toast('Value copied');
+  });
+  $('#stPath').onclick = () => S.doc !== undefined && copyText(pathStr(S.sel), 'Path copied');
+  $('#stValid').onclick = () => { if (S.textError) goToPos(S.textError.pos); };
+  addEventListener('beforeunload', e => { if (S.dirty && S.doc !== undefined && S.fileHandle) { e.preventDefault(); e.returnValue = ''; } });
+  addEventListener('resize', closeMenu);
+}
+function formatText() {
+  if (S.textError) { repairText(); return; }
+  if (S.indent === 0) { S.indent = 2; $('#indentSel').value = '2'; store.set('jwb.indent', '2'); }
+  fillText();
+}
+function onPaste(e) {
+  if (inField()) return;
+  const text = e.clipboardData?.getData('text/plain');
+  if (!text || !text.trim()) return;
+  e.preventDefault();
+  if (S.doc === undefined) { loadText(text, 'pasted.json'); return; }
+  if (S.view !== 'tree') return;
+  let v;
+  const r = parseText(text);
+  if (r.ok) v = r.value; else { try { v = parseJSON(text, true); } catch { v = text; } }
+  const p = S.sel, cur = getAt(p);
+  let np;
+  if (isCont(cur)) {
+    mutate(() => {
+      if (Array.isArray(cur)) { cur.push(v); np = p.concat(cur.length - 1); }
+      else if (isCont(v) && !Array.isArray(v)) { for (const k of Object.keys(v)) setProp(cur, k, v[k]); np = p; }
+      else { const k = uniqueKey(cur, 'pasted'); setProp(cur, k, v); np = p.concat(k); }
+      S.expanded.add(pk(p));
+    });
+    toast(Array.isArray(cur) ? 'Pasted as new item' : isCont(v) && !Array.isArray(v) ? 'Merged pasted properties' : 'Pasted as new property');
+  } else {
+    const pp = p.slice(0, -1), par = getAt(pp), k = p[p.length - 1];
+    mutate(() => {
+      if (Array.isArray(par)) { shiftIdx(pp, k + 1, 1); par.splice(k + 1, 0, v); np = pp.concat(k + 1); }
+      else { const nk = uniqueKey(par, 'pasted'); const ents = []; for (const kk of Object.keys(par)) { ents.push([kk, par[kk]]); if (kk === k) ents.push([nk, v]); } reorderObj(par, ents); np = pp.concat(nk); }
+    });
+    toast('Pasted after selection');
+  }
+  if (np) select(np, { reveal: true });
+}
+function treeKeys(e) {
+  if (S.editing || e.target.closest('.inl') || S.doc === undefined) return;
+  const i = ROWIDX.get(S.selKey) ?? 0, r = ROWS[i]; if (!r) return;
+  const go = j => { j = Math.max(0, Math.min(ROWS.length - 1, j)); select(ROWS[j].path); };
+  const pageN = Math.max(1, Math.floor(treeScroll().clientHeight / RH) - 1);
+  const k = e.key, mod = e.ctrlKey || e.metaKey;
+  let handled = true;
+  if (k === 'ArrowDown' && e.altKey) actMove(r.path, 1);
+  else if (k === 'ArrowUp' && e.altKey) actMove(r.path, -1);
+  else if (k === 'ArrowDown') go(i + 1);
+  else if (k === 'ArrowUp') go(i - 1);
+  else if (k === 'PageDown') go(i + pageN);
+  else if (k === 'PageUp') go(i - pageN);
+  else if (k === 'Home') go(0);
+  else if (k === 'End') go(ROWS.length - 1);
+  else if (k === 'ArrowRight') { if (r.cont && !r.open) toggle(r.path, true); else if (r.open && ROWS[i + 1]?.depth > r.depth) go(i + 1); }
+  else if (k === 'ArrowLeft') { if (r.open) toggle(r.path, false); else if (r.path.length) select(r.path.slice(0, -1)); }
+  else if (k === 'Enter') { if (r.cont) toggle(r.path); else startEdit(r.path, 'value'); }
+  else if (k === 'F2') startEdit(r.path, r.path.length && typeof r.key === 'string' ? 'key' : 'value');
+  else if (k === 'Delete' || (k === 'Backspace' && mod)) actDelete(r.path);
+  else if (k === 'Insert' && e.shiftKey) actAdd(r.path);
+  else if (k === 'Insert') actInsertAfter(r.path);
+  else if (mod && k.toLowerCase() === 'd') actDuplicate(r.path);
+  else if (k === '*') expandAll(r.path);
+  else if (k === 'ContextMenu' || (k === 'F10' && e.shiftKey)) {
+    const el = $(`#treeSpacer [data-i="${i}"]`); const rc = el ? el.getBoundingClientRect() : { left: 100, bottom: 100 };
+    openMenu(nodeMenuItems(r.path), rc.left + 40, rc.bottom);
+  }
+  else handled = false;
+  if (handled) e.preventDefault();
+}
+function globalKeys(e) {
+  const mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
+  if ($('.modal-ov')) return;
+  if (mod && k === 'o') { e.preventDefault(); openFile(); }
+  else if (mod && k === 's') { e.preventDefault(); save(e.shiftKey); }
+  else if (mod && k === 'f' && e.shiftKey && S.view === 'text') { e.preventDefault(); formatText(); }
+  else if (mod && k === 'f') { e.preventDefault(); $('#sIn').focus(); $('#sIn').select(); }
+  else if (mod && k === 'b') { e.preventDefault(); toggleSide(); }
+  else if (mod && ['1', '2', '3'].includes(e.key)) { e.preventDefault(); setView(['tree', 'text', 'table'][+e.key - 1]); }
+  else if (mod && (k === 'z' || k === 'y') && !inField()) { e.preventDefault(); if (k === 'y' || e.shiftKey) redo(); else undo(); }
+  else if (e.key === '?' && !inField()) { e.preventDefault(); showHelp(); }
+  else if (e.key === 'Escape') closeMenu();
+}
+
+/* =========================================================================
+   Init
+   ========================================================================= */
+function init() {
+  wire();
+  const th = store.get('jwb.theme'); if (th) applyTheme(th);
+  const ind = store.get('jwb.indent'); if (ind) { $('#indentSel').value = ind; S.indent = ind === 'tab' ? '\t' : +ind; }
+  if (store.get('jwb.side') === '0' || innerWidth < 700) { S.sideOpen = false; $('#side').hidden = true; } else $('#bPanel').classList.add('on');
+  const q = store.get('jwb.query'); $('#qIn').value = q || '';
+  const view = store.get('jwb.view');
+  if (['tree', 'text', 'table'].includes(view)) S.view = view;
+  let restored = false;
+  const sess = store.get('jwb.session');
+  if (sess) {
+    try {
+      const { name, text, dirty } = JSON.parse(sess);
+      setDoc(JSON.parse(text), name); S.dirty = !!dirty; updateTitle(); restored = true;
+      toast(`Restored ${name} from your last session`);
+    } catch {}
+  }
+  if (!restored) { S.dirty = false; afterDocChange(); S.dirty = false; updateTitle(); }
+  renderInspector();
+  if (S.view === 'tree') treeScroll().focus({ preventScroll: true });
+}
+init();
+</script>
+</body>
+</html>
